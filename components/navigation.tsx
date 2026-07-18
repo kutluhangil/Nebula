@@ -15,6 +15,7 @@ import {
   Rocket,
   Star,
 } from "lucide-react";
+import { SearchModal } from "@/components/ui/search-modal";
 
 const navItems = [
   { href: "/", label: "Home", icon: Star },
@@ -23,12 +24,14 @@ const navItems = [
   { href: "/earth", label: "Earth", icon: Activity },
   { href: "/launches", label: "Launches", icon: Rocket },
   { href: "/timeline", label: "Timeline", icon: Zap },
+  { href: "/favorites", label: "Favorites", icon: Star },
 ];
 
 export function Navigation() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -54,8 +57,21 @@ export function Navigation() {
     return () => clearInterval(interval);
   }, []);
 
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <>
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       <motion.nav
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -118,6 +134,7 @@ export function Navigation() {
                 </span>
               </div>
               <button
+                onClick={() => setSearchOpen(true)}
                 className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all"
                 aria-label="Search"
               >

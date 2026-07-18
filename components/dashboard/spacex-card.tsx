@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Rocket, Calendar, CheckCircle, XCircle, Clock } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState, useEffect } from "react";
+import { FavoriteButton } from "@/components/ui/favorite-button";
 
 interface Launch {
   id: string;
@@ -76,9 +77,22 @@ export function SpaceXCard() {
       {/* Latest Launch */}
       {latest && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-violet-400" />
-            <span className="text-xs text-white/30 uppercase tracking-widest">Latest Launch</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-violet-400" />
+              <span className="text-xs text-white/30 uppercase tracking-widest">Latest Launch</span>
+            </div>
+            <FavoriteButton 
+              item={{
+                id: `spacex-${latest.id}`,
+                type: 'spacex',
+                title: latest.name,
+                subtitle: format(new Date(latest.date_utc), "MMM d, yyyy"),
+                imageUrl: latest.links?.patch?.small || undefined,
+                date: latest.date_utc,
+                data: latest
+              }}
+            />
           </div>
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
@@ -124,9 +138,22 @@ export function SpaceXCard() {
       {/* Next Launch */}
       {nextLaunch && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-white/30 uppercase tracking-widest">Next Launch</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs text-white/30 uppercase tracking-widest">Next Launch</span>
+            </div>
+            <FavoriteButton 
+              item={{
+                id: `spacex-${nextLaunch.id}`,
+                type: 'spacex',
+                title: nextLaunch.name,
+                subtitle: format(new Date(nextLaunch.date_utc), "MMM d, yyyy"),
+                imageUrl: nextLaunch.links?.patch?.small || undefined,
+                date: nextLaunch.date_utc,
+                data: nextLaunch
+              }}
+            />
           </div>
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">

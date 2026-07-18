@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Heart, Share2, Maximize2, ExternalLink } from "lucide-react";
+import { Share2, Maximize2, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { FavoriteButton } from "@/components/ui/favorite-button";
 
 interface APODData {
   title: string;
@@ -18,7 +19,6 @@ interface APODData {
 
 export function APODCard() {
   const [fullscreen, setFullscreen] = useState(false);
-  const [liked, setLiked] = useState(false);
 
   const { data, isLoading } = useQuery<APODData>({
     queryKey: ["apod"],
@@ -96,18 +96,19 @@ export function APODCard() {
           </p>
 
           <div className="flex items-center gap-2 mt-4">
-            <button
-              onClick={() => setLiked(!liked)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                liked
-                  ? "bg-rose-500/15 text-rose-400 border border-rose-500/20"
-                  : "bg-white/[0.03] text-white/40 border border-white/[0.06] hover:text-white/70"
-              }`}
-              aria-label={liked ? "Remove from favorites" : "Add to favorites"}
-            >
-              <Heart className={`w-3.5 h-3.5 ${liked ? "fill-current" : ""}`} />
-              {liked ? "Saved" : "Save"}
-            </button>
+            {data?.date && (
+              <FavoriteButton 
+                item={{
+                  id: `apod-${data.date}`,
+                  type: 'apod',
+                  title: data.title || 'APOD',
+                  subtitle: data.date,
+                  imageUrl: data.url,
+                  date: data.date,
+                  data
+                }} 
+              />
+            )}
             <button
               onClick={handleShare}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs font-medium hover:text-white/70 transition-all"

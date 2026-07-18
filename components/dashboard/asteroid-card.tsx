@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { AlertTriangle, Shield } from "lucide-react";
+import { FavoriteButton } from "@/components/ui/favorite-button";
 
 interface Asteroid {
   id: string;
@@ -115,11 +116,23 @@ export function AsteroidCard() {
                 </div>
               </div>
               {approach && (
-                <div className="text-[10px] text-white/25 font-mono flex-shrink-0">
-                  {parseFloat(
-                    approach.relative_velocity.kilometers_per_hour
-                  ).toFixed(0)}{" "}
-                  km/h
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="text-[10px] text-white/25 font-mono">
+                    {parseFloat(
+                      approach.relative_velocity.kilometers_per_hour
+                    ).toFixed(0)}{" "}
+                    km/h
+                  </div>
+                  <FavoriteButton 
+                    item={{
+                      id: `asteroid-${asteroid.id}`,
+                      type: 'asteroid',
+                      title: asteroid.name.replace(/[()]/g, ""),
+                      subtitle: `⌀ ${(diameterAvg * 1000).toFixed(0)}m - ${(parseFloat(approach.miss_distance.kilometers) / 1_000_000).toFixed(2)}M km away`,
+                      date: approach.close_approach_date,
+                      data: asteroid
+                    }}
+                  />
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Maximize2, X, MapPin, Clock, Waves } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { FavoriteButton } from "@/components/ui/favorite-button";
 
 interface EarthquakeFeature {
   id: string;
@@ -141,6 +142,19 @@ export function EarthquakeList() {
                 >
                   <X className="w-4 h-4" />
                 </button>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <FavoriteButton 
+                  item={{
+                    id: `earthquake-${selected.id}`,
+                    type: 'earthquake',
+                    title: `M${selected.properties.mag.toFixed(1)} Earthquake`,
+                    subtitle: selected.properties.place,
+                    date: new Date(selected.properties.time).toISOString(),
+                    data: selected
+                  }}
+                />
               </div>
 
               <div className="space-y-3">
