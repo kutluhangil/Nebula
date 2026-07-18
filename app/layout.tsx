@@ -5,7 +5,7 @@ import { StarsBackground } from "@/components/ui/stars-background";
 import { Navigation } from "@/components/navigation";
 
 export const metadata: Metadata = {
-  title: "COSMOS — Planet Intelligence Dashboard",
+  title: "NEBULA — Planet Intelligence Dashboard",
   description:
     "A premium, AI-powered science dashboard combining live space exploration, astronomy, Earth events, and scientific discoveries into one immersive experience.",
   keywords: [
@@ -20,17 +20,17 @@ export const metadata: Metadata = {
     "science",
     "dashboard",
   ],
-  authors: [{ name: "COSMOS" }],
+  authors: [{ name: "NEBULA" }],
   openGraph: {
-    title: "COSMOS — Planet Intelligence Dashboard",
+    title: "NEBULA — Planet Intelligence Dashboard",
     description:
       "Live space exploration, astronomy, Earth events & AI-generated daily planet reports.",
     type: "website",
-    siteName: "COSMOS",
+    siteName: "NEBULA",
   },
   twitter: {
     card: "summary_large_image",
-    title: "COSMOS — Planet Intelligence Dashboard",
+    title: "NEBULA — Planet Intelligence Dashboard",
     description:
       "Live space exploration, astronomy, Earth events & AI-generated daily planet reports.",
   },
@@ -64,7 +64,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              name: "COSMOS",
+              name: "NEBULA",
               description:
                 "Planet Intelligence Dashboard — Live space & Earth data",
               applicationCategory: "Science",

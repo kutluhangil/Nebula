@@ -66,7 +66,7 @@ export default function EarthquakeMap({
               opacity={0.8}
               fillOpacity={0.4}
             >
-              <Popup className="cosmos-popup">
+              <Popup className="nebula-popup">
                 <div className="bg-gray-900 text-white p-3 rounded-lg min-w-[200px]">
                   <div className="flex items-center gap-2 mb-2">
                     <span

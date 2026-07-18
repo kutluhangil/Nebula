@@ -1,4 +1,4 @@
-# COSMOS — Planet Intelligence Dashboard
+# NEBULA — Planet Intelligence Dashboard
 
 ## Project Vision
 

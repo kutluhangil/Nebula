@@ -1,8 +1,8 @@
-# COSMOS — Planet Intelligence Dashboard
+# Nebula — Planet Intelligence Dashboard
 
 > A premium, AI-powered science dashboard combining live space exploration, astronomy, Earth events, and scientific discoveries into one immersive experience.
 
-![COSMOS Dashboard](https://apod.nasa.gov/apod/image/2407/NGC1232_VLT_960.jpg)
+![Nebula Dashboard](https://apod.nasa.gov/apod/image/2407/NGC1232_VLT_960.jpg)
 
 ## Features
 
@@ -43,7 +43,7 @@
 
 ```bash
 git clone https://github.com/kutluhangil/Nebula.git
-cd Nebula/cosmos-app
+cd Nebula/Nebula
 npm install
 
 # Copy environment variables

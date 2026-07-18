@@ -51,7 +51,7 @@ export default function DashboardPage() {
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
             Planet{" "}
-            <span className="gradient-text-cosmos">Intelligence</span>
+            <span className="gradient-text-nebula">Intelligence</span>
           </h1>
         </motion.div>
 

@@ -356,7 +356,7 @@ export default function HomePage() {
             className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-none"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            <span className="gradient-text-cosmos">Planet</span>
+            <span className="gradient-text-nebula">Planet</span>
             <br />
             <span className="text-white/90">Intelligence</span>
           </motion.h1>
@@ -459,7 +459,7 @@ export default function HomePage() {
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Everything in{" "}
-              <span className="gradient-text-cosmos">one place</span>
+              <span className="gradient-text-nebula">one place</span>
             </h2>
             <p className="text-white/30 text-lg max-w-xl mx-auto">
               Real-time data from the world&apos;s most trusted scientific agencies,
@@ -512,7 +512,7 @@ export default function HomePage() {
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               The universe is{" "}
-              <span className="gradient-text-cosmos">happening now</span>
+              <span className="gradient-text-nebula">happening now</span>
             </h2>
             <p className="text-white/30 mb-8 leading-relaxed">
               Open the dashboard and experience live space intelligence. Updated
@@ -535,10 +535,10 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-blue-400" />
             <span
-              className="font-bold gradient-text-cosmos text-sm tracking-wider"
+              className="font-bold gradient-text-nebula text-sm tracking-wider"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              COSMOS
+              NEBULA
             </span>
           </div>
           <p className="text-white/20 text-xs text-center">
@@ -546,7 +546,7 @@ export default function HomePage() {
             For educational & portfolio purposes.
           </p>
           <div className="text-white/20 text-xs">
-            © {new Date().getFullYear()} COSMOS
+            © {new Date().getFullYear()} NEBULA
           </div>
         </div>
       </footer>

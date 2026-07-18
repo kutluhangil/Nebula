@@ -77,10 +77,10 @@ export function Navigation() {
                 </div>
               </div>
               <span
-                className="font-bold text-lg tracking-wider gradient-text-cosmos"
+                className="font-bold text-lg tracking-wider gradient-text-nebula"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                COSMOS
+                NEBULA
               </span>
             </Link>
 

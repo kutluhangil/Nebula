@@ -1,6 +1,6 @@
-# COSMOS — Gezegen Zekası Dashboard’u
+# NEBULA — Gezegen Zekası Dashboard’u
 
-**Yönetici Özeti:** *COSMOS*, uzaydaki ve dünyadaki güncel bilimsel gelişmeleri tek bir platformda toplayan premium bir web uygulamasıdır. NASA, SpaceX, USGS ve NOAA gibi kurumların ücretsiz API’lerinden alınan verilerle günlük astronomi görselleri, uzaydaki fırlatma ve asteroid bilgileri, dünya depremleri, aurora tahminleri gibi bileşenler sunar. Gerçek zamanlı güncellemeler, etkileşimli grafikler ve OpenAI destekli “Günlük Gezegen Raporu” ile zenginleştirilmiş bu uygulama, portföy kalitesinde bir ürün olarak tasarlanacaktır.  
+**Yönetici Özeti:** *NEBULA*, uzaydaki ve dünyadaki güncel bilimsel gelişmeleri tek bir platformda toplayan premium bir web uygulamasıdır. NASA, SpaceX, USGS ve NOAA gibi kurumların ücretsiz API’lerinden alınan verilerle günlük astronomi görselleri, uzaydaki fırlatma ve asteroid bilgileri, dünya depremleri, aurora tahminleri gibi bileşenler sunar. Gerçek zamanlı güncellemeler, etkileşimli grafikler ve OpenAI destekli “Günlük Gezegen Raporu” ile zenginleştirilmiş bu uygulama, portföy kalitesinde bir ürün olarak tasarlanacaktır.  
 
 ---
 
@@ -325,8 +325,8 @@ Her faz sonunda bir “demo sürümü” (ara sürüm) alınarak geri bildirim d
 
 - **Kurulum:**  
   ```bash
-  git clone https://github.com/ben/Cosmos-Dashboard.git
-  cd Cosmos-Dashboard
+  git clone https://github.com/ben/Nebula-Dashboard.git
+  cd Nebula-Dashboard
   npm install
   ```
 - **Çevresel Değişkenler (`.env.local`):**  
