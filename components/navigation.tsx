@@ -16,7 +16,7 @@ import {
   Star,
   Newspaper,
 } from "lucide-react";
-import { SearchModal } from "@/components/ui/search-modal";
+import { CommandPalette } from "@/components/ui/command-palette";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navItems = [
@@ -73,7 +73,7 @@ export function Navigation() {
 
   return (
     <>
-      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <CommandPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       
       {/* Floating Header */}
       <motion.header

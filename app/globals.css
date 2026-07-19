@@ -288,6 +288,61 @@ body {
   font-feature-settings: 'tnum' 1;
 }
 
+/* ============================================================
+   Command palette (cmdk) — theme-aware, keyboard-first
+   ============================================================ */
+[cmdk-root] { width: 100%; }
+[cmdk-input] {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+}
+[cmdk-input]::placeholder { color: var(--text-faint); }
+[cmdk-list] {
+  max-height: 56vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+[cmdk-group-heading] {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 14px 14px 6px;
+}
+[cmdk-item] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin: 0 6px;
+  border-radius: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  content-visibility: auto;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+[cmdk-item][data-selected="true"] {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+[cmdk-item][data-selected="true"] .cmdk-tile {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+[cmdk-item] svg { flex-shrink: 0; }
+[cmdk-empty] {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
 /* Divider */
 .hairline {
   height: 1px;
