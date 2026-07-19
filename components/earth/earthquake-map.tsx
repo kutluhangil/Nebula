@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { formatDistanceToNow } from "date-fns";
@@ -25,13 +24,15 @@ function getMagRadius(mag: number) {
 
 export default function EarthquakeMap({
   earthquakes,
+  height = "500px",
 }: {
   earthquakes: EarthquakeFeature[];
+  height?: string;
 }) {
   return (
     <div
       className="rounded-2xl overflow-hidden border border-[var(--border)]"
-      style={{ height: "500px" }}
+      style={{ height }}
     >
       <MapContainer
         center={[20, 0]}

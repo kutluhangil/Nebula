@@ -1,13 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Activity, Waves, AlertTriangle } from "lucide-react";
+import { Activity, Waves, AlertTriangle, Focus, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { MagnitudeChart } from "@/components/earth/magnitude-chart";
 import { DepthChart } from "@/components/earth/depth-chart";
 import { MAGNITUDE_BANDS } from "@/lib/dataviz";
+import { useWatchlist, type EarthquakeThreshold } from "@/hooks/use-watchlist";
 
 // Leaflet must be dynamically imported (no SSR)
 const EarthquakeMap = dynamic(
@@ -29,18 +31,29 @@ interface EarthquakeFeature {
 }
 
 export default function EarthPage() {
+  const [mapFocused, setMapFocused] = useState(false);
+  const {
+    earthquakeThreshold,
+    tsunamiOnly,
+    setEarthquakeThreshold,
+    setTsunamiOnly,
+  } = useWatchlist();
   const { data, isLoading } = useQuery<{ features: EarthquakeFeature[] }>({
     queryKey: ["earthquakes"],
     queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
     refetchInterval: 1000 * 60 * 10,
   });
 
-  const quakes = data?.features || [];
+  const allQuakes = data?.features || [];
+  const quakes = allQuakes.filter(
+    (quake) =>
+      quake.properties.mag >= earthquakeThreshold &&
+      (!tsunamiOnly || quake.properties.tsunami === 1)
+  );
   const major = quakes.filter((q) => q.properties.mag >= 6);
   const moderate = quakes.filter(
     (q) => q.properties.mag >= 5 && q.properties.mag < 6
   );
-  const minor = quakes.filter((q) => q.properties.mag < 5);
   const tsunamiAlerts = quakes.filter((q) => q.properties.tsunami === 1);
 
   return (
@@ -63,9 +76,36 @@ export default function EarthPage() {
             <span className="italic text-[var(--accent)]">Intelligence</span>
           </h1>
           <p className="text-[var(--text-faint)] text-sm mt-1">
-            USGS · Earthquakes M4.0+ · Last 7 days
+            USGS · Earthquakes M{earthquakeThreshold}.0+ · Last 7 days{tsunamiOnly ? " · Tsunami flagged" : ""}
           </p>
         </motion.div>
+
+        {/* Shared with the dashboard watchlist, so monitoring choices travel with the user. */}
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-medium text-[var(--text-dim)]">Seismic view filters</p>
+            <p className="mt-0.5 text-xs text-[var(--text-faint)]">These match your dashboard watchlist.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {([4, 5, 6] as EarthquakeThreshold[]).map((threshold) => (
+              <button
+                type="button"
+                key={threshold}
+                onClick={() => setEarthquakeThreshold(threshold)}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-mono transition-colors ${earthquakeThreshold === threshold ? "border-[var(--accent)] bg-[var(--surface-hover)] text-[var(--text)]" : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"}`}
+              >
+                M{threshold}+
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setTsunamiOnly(!tsunamiOnly)}
+              className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${tsunamiOnly ? "border-blue-400/40 bg-blue-500/10 text-blue-300" : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"}`}
+            >
+              Tsunami only
+            </button>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -122,7 +162,7 @@ export default function EarthPage() {
         </div>
 
         {/* Map */}
-        <div className="mb-6">
+        <div className={mapFocused ? "fixed inset-3 z-[90] flex flex-col rounded-2xl border border-[var(--border-strong)] bg-[var(--bg)] p-3 shadow-[var(--panel-shadow)] sm:inset-8" : "mb-6"}>
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-emerald-400" />
             <span className="text-[var(--text-dim)] font-semibold text-sm">
@@ -138,9 +178,17 @@ export default function EarthPage() {
                   {b.key}
                 </span>
               ))}
+              <button
+                type="button"
+                onClick={() => setMapFocused(!mapFocused)}
+                className="ml-1 inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-[var(--text-faint)] transition-colors hover:text-[var(--text-dim)]"
+              >
+                {mapFocused ? <X className="h-3 w-3" /> : <Focus className="h-3 w-3" />}
+                {mapFocused ? "Close" : "Focus"}
+              </button>
             </div>
           </div>
-          <EarthquakeMap earthquakes={quakes} />
+          <EarthquakeMap key={mapFocused ? "focused" : "default"} earthquakes={quakes} height={mapFocused ? "calc(100vh - 8rem)" : "500px"} />
         </div>
 
         {/* Recent major events */}

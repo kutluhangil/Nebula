@@ -14,6 +14,8 @@ import {
   Zap,
   Sun,
   Moon,
+  Bell,
+  Map,
   ArrowUp,
   CornerDownLeft,
   type LucideIcon,
@@ -74,6 +76,20 @@ export function CommandPalette({
   ];
 
   const actions: Action[] = [
+    {
+      id: "watchlist",
+      label: "Configure earthquake watchlist",
+      icon: Bell,
+      keywords: "alerts notification threshold tsunami monitor",
+      perform: () => go("/dashboard#watchlist"),
+    },
+    {
+      id: "seismic-map",
+      label: "Open seismic map",
+      icon: Map,
+      keywords: "earthquake earth usgs map monitor",
+      perform: () => go("/earth"),
+    },
     {
       id: "theme",
       label: theme === "dark" ? "Switch to light theme" : "Switch to dark theme",

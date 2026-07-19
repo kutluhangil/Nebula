@@ -3,14 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  Globe,
   Satellite,
   Zap,
   Activity,
   Rocket,
   Star,
   AlertTriangle,
-  Radio,
   Thermometer,
 } from "lucide-react";
 import { APODCard } from "@/components/dashboard/apod-card";
@@ -22,6 +20,8 @@ import { SolarCard } from "@/components/dashboard/solar-card";
 import { StatsBar } from "@/components/dashboard/stats-bar";
 import { AIReport } from "@/components/dashboard/ai-report";
 import { WeatherWidget } from "@/components/dashboard/weather-widget";
+import { LiveBriefing } from "@/components/dashboard/live-briefing";
+import { WatchlistCard } from "@/components/dashboard/watchlist-card";
 
 export default function DashboardPage() {
   const { data: earthquakeData } = useQuery({
@@ -61,14 +61,33 @@ export default function DashboardPage() {
           <StatsBar earthquakeCount={totalQuakes} />
         </motion.div>
 
-        {/* AI Report */}
+        {/* What is happening now */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         >
-          <AIReport earthquakeCount={totalQuakes} />
+          <LiveBriefing />
         </motion.div>
+
+        {/* AI report + personal watchlist */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-2"
+          >
+            <AIReport earthquakeCount={totalQuakes} />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <WatchlistCard earthquakes={earthquakeData?.features ?? []} />
+          </motion.div>
+        </div>
 
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
