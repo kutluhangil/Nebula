@@ -46,7 +46,7 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
 
   return (
     <div
-      className="text-[#a1a1aa] font-mono text-sm font-semibold"
+      className="text-[var(--text-dim)] font-mono text-sm font-semibold"
       aria-live="polite"
     >
       {timeLeft}
@@ -80,7 +80,7 @@ export function SpaceXCard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-violet-400" />
-              <span className="text-xs text-white/30 uppercase tracking-widest">Latest Launch</span>
+              <span className="text-xs text-[var(--text-faint)] uppercase tracking-widest">Latest Launch</span>
             </div>
             <FavoriteButton 
               item={{
@@ -95,7 +95,7 @@ export function SpaceXCard() {
             />
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
               {latest.links?.patch?.small ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -104,27 +104,27 @@ export function SpaceXCard() {
                   className="w-8 h-8 object-contain"
                 />
               ) : (
-                <Rocket className="w-4 h-4 text-[#a1a1aa]" />
+                <Rocket className="w-4 h-4 text-[var(--text-dim)]" />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h4 className="text-white/80 font-semibold text-sm truncate">
+                <h4 className="text-[var(--text)] font-semibold text-sm truncate">
                   {latest.name}
                 </h4>
                 {latest.success === true && (
-                  <CheckCircle className="w-3.5 h-3.5 text-[#a1a1aa] flex-shrink-0" />
+                  <CheckCircle className="w-3.5 h-3.5 text-[var(--text-dim)] flex-shrink-0" />
                 )}
                 {latest.success === false && (
                   <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                 )}
               </div>
-              <div className="flex items-center gap-1 text-white/30 text-xs">
+              <div className="flex items-center gap-1 text-[var(--text-faint)] text-xs">
                 <Calendar className="w-3 h-3" />
                 {format(new Date(latest.date_utc), "MMM d, yyyy")}
               </div>
               {latest.details && (
-                <p className="text-white/30 text-xs mt-1 line-clamp-2">
+                <p className="text-[var(--text-faint)] text-xs mt-1 line-clamp-2">
                   {latest.details}
                 </p>
               )}
@@ -141,7 +141,7 @@ export function SpaceXCard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs text-white/30 uppercase tracking-widest">Next Launch</span>
+              <span className="text-xs text-[var(--text-faint)] uppercase tracking-widest">Next Launch</span>
             </div>
             <FavoriteButton 
               item={{
@@ -156,7 +156,7 @@ export function SpaceXCard() {
             />
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
               {nextLaunch.links?.patch?.small ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -165,14 +165,14 @@ export function SpaceXCard() {
                   className="w-8 h-8 object-contain"
                 />
               ) : (
-                <Rocket className="w-4 h-4 text-[#a1a1aa]" />
+                <Rocket className="w-4 h-4 text-[var(--text-dim)]" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-white/80 font-semibold text-sm mb-1">
+              <h4 className="text-[var(--text)] font-semibold text-sm mb-1">
                 {nextLaunch.name}
               </h4>
-              <div className="flex items-center gap-1 text-white/30 text-xs mb-2">
+              <div className="flex items-center gap-1 text-[var(--text-faint)] text-xs mb-2">
                 <Clock className="w-3 h-3" />
                 {formatDistanceToNow(new Date(nextLaunch.date_utc), {
                   addSuffix: true,
@@ -194,10 +194,10 @@ export function SpaceXCard() {
                 key={launch.id}
                 className="flex items-center justify-between py-1.5 text-xs"
               >
-                <span className="text-white/40 truncate flex-1">
+                <span className="text-[var(--text-faint)] truncate flex-1">
                   {launch.name}
                 </span>
-                <span className="text-white/25 ml-2 flex-shrink-0">
+                <span className="text-[var(--text-faint)] ml-2 flex-shrink-0">
                   {format(new Date(launch.date_utc), "MMM d")}
                 </span>
               </div>

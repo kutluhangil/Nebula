@@ -33,7 +33,7 @@ export function NewsCard({ article, index }: NewsCardProps) {
       transition={{ duration: 0.6, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
       className="glass-panel group overflow-hidden flex flex-col h-full"
     >
-      <div className="relative h-48 md:h-56 w-full overflow-hidden bg-white/5">
+      <div className="relative h-48 md:h-56 w-full overflow-hidden bg-[var(--surface)]">
         {article.image_url ? (
           <Image
             src={article.image_url}
@@ -43,7 +43,7 @@ export function NewsCard({ article, index }: NewsCardProps) {
             unoptimized
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[#71717a]">
+          <div className="w-full h-full flex items-center justify-center text-[var(--text-faint)]">
             <Newspaper className="w-8 h-8 opacity-50" />
           </div>
         )}
@@ -51,25 +51,25 @@ export function NewsCard({ article, index }: NewsCardProps) {
         
         {/* News Site Badge */}
         <div className="absolute top-4 left-4">
-          <span className="px-2.5 py-1 text-[10px] font-medium tracking-wider text-white uppercase bg-black/60 backdrop-blur-md rounded-full border border-white/10">
+          <span className="px-2.5 py-1 text-[10px] font-medium tracking-wider text-[var(--text)] uppercase bg-[var(--surface)] backdrop-blur-md rounded-full border border-[var(--border)]">
             {article.news_site}
           </span>
         </div>
       </div>
       
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-serif text-lg md:text-xl font-medium text-[#fafafa] leading-snug mb-3 group-hover:text-[#d97757] transition-colors line-clamp-3">
+        <h3 className="font-serif text-lg md:text-xl font-medium text-[var(--text)] leading-snug mb-3 group-hover:text-[var(--accent)] transition-colors line-clamp-3">
           {article.title}
         </h3>
-        <p className="text-[#a1a1aa] text-sm leading-relaxed mb-4 line-clamp-3 flex-1 font-light">
+        <p className="text-[var(--text-dim)] text-sm leading-relaxed mb-4 line-clamp-3 flex-1 font-light">
           {article.summary}
         </p>
         
-        <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-          <span className="text-xs text-[#71717a] font-mono tracking-wide">
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-[var(--border)]">
+          <span className="text-xs text-[var(--text-faint)] font-mono tracking-wide">
             {formatDistanceToNow(new Date(article.published_at), { addSuffix: true })}
           </span>
-          <span className="flex items-center gap-1.5 text-xs font-medium text-[#71717a] group-hover:text-[#fafafa] transition-colors">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-faint)] group-hover:text-[var(--text)] transition-colors">
             Read Article
             <ExternalLink className="w-3 h-3" />
           </span>

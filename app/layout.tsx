@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { StarsBackground } from "@/components/ui/stars-background";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
+
+// Applied before paint to prevent a theme flash. Defaults to dark (deep space),
+// but honours a stored choice or the OS preference.
+const themeScript = `(function(){try{var t=localStorage.getItem('nebula-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export const metadata: Metadata = {
   title: "NEBULA — Planet Intelligence Dashboard",
@@ -49,6 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -74,13 +78,14 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased selection:bg-white/20 selection:text-white w-full overflow-x-hidden">
-        {/* Subtle Background Glows */}
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none w-full">
-          <div className="glow-blob glow-blue w-[800px] h-[800px] top-[-200px] left-[-200px]" />
-          <div className="glow-amber w-[600px] h-[600px] bottom-[-100px] right-[-100px] glow-blob" />
+      <body className="antialiased w-full overflow-x-hidden">
+        {/* Ambient mission-control backdrop: blueprint grid + nebula glow */}
+        <div className="ambient-grid" aria-hidden="true" />
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none w-full" aria-hidden="true">
+          <div className="glow-blob glow-blue w-[700px] h-[700px] top-[-250px] left-[-150px]" />
+          <div className="glow-blob glow-violet w-[600px] h-[600px] bottom-[-200px] right-[-150px]" />
         </div>
-        
+
         <Providers>
           <div className="relative z-10 min-h-screen flex flex-col w-full">
             <Navigation />

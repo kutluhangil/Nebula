@@ -28,7 +28,7 @@ export function FavoriteButton({ item }: { item: FavoriteItem }) {
       className={`p-2 rounded-xl border backdrop-blur-sm transition-all ${
         active 
           ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-400" 
-          : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80"
+          : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
       }`}
     >
       <Star className={`w-4 h-4 ${active ? "fill-yellow-400" : ""}`} />

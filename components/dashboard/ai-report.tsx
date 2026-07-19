@@ -32,19 +32,19 @@ export function AIReport({ earthquakeCount }: AIReportProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-            <Sparkles className="w-3.5 h-3.5 text-[#a1a1aa]" />
+            <Sparkles className="w-3.5 h-3.5 text-[var(--text-dim)]" />
           </div>
-          <span className="text-white/60 font-semibold text-sm">
+          <span className="text-[var(--text-dim)] font-semibold text-sm">
             Daily Planet Report
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-white/20 text-xs">
+        <div className="flex items-center gap-1.5 text-[var(--text-faint)] text-xs">
           <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
           {isLoading ? "Generating..." : "Auto-generated"}
         </div>
       </div>
 
-      <p className="text-white/45 text-sm leading-relaxed">
+      <p className="text-[var(--text-faint)] text-sm leading-relaxed">
         {isLoading
           ? "Connecting to NEBULA Core. Analyzing orbital data, seismic activity, and solar parameters..."
           : isError

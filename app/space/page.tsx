@@ -20,13 +20,13 @@ export default function SpacePage() {
           className="mb-8"
         >
           <h1
-            className="text-3xl md:text-4xl font-bold text-white/90"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            className="font-serif text-4xl md:text-5xl text-[var(--text)]"
+           
           >
             Space{" "}
-            <span className="gradient-text-blue">Observatory</span>
+            <span className="italic text-[var(--accent)]">Observatory</span>
           </h1>
-          <p className="text-white/30 text-sm mt-1">
+          <p className="text-[var(--text-faint)] text-sm mt-1">
             NASA · NOAA · Open Notify · Live space data
           </p>
         </motion.div>
@@ -70,11 +70,11 @@ export default function SpacePage() {
                 <Rocket className="w-5 h-5 text-violet-400" />
               </div>
               <div>
-                <div className="text-white/70 font-semibold text-sm">SpaceX Launches</div>
-                <div className="text-white/25 text-xs">Latest and upcoming missions</div>
+                <div className="text-[var(--text-dim)] font-semibold text-sm">SpaceX Launches</div>
+                <div className="text-[var(--text-faint)] text-xs">Latest and upcoming missions</div>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+            <ArrowRight className="w-4 h-4 text-[var(--text-faint)] group-hover:text-[var(--text-dim)] group-hover:translate-x-1 transition-all" />
           </Link>
         </motion.div>
       </div>
@@ -96,7 +96,7 @@ function SectionLabel({
   return (
     <div className="flex items-center gap-2 mb-3">
       <Icon className={`w-4 h-4 ${color}`} />
-      <span className="text-white/60 font-semibold text-sm">{label}</span>
+      <span className="text-[var(--text-dim)] font-semibold text-sm">{label}</span>
       {live && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
     </div>
   );

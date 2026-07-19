@@ -50,18 +50,18 @@ export function AsteroidCard() {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         <div className="rounded-xl bg-orange-500/5 border border-orange-500/10 p-3 text-center">
-          <div className="text-2xl font-bold font-mono text-[#a1a1aa] mb-0.5">
+          <div className="text-2xl font-bold font-mono text-[var(--text-dim)] mb-0.5">
             {hazardous.length}
           </div>
-          <div className="text-white/30 text-[10px] uppercase tracking-wide">
+          <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wide">
             Hazardous
           </div>
         </div>
-        <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-3 text-center">
-          <div className="text-2xl font-bold font-mono text-white/60 mb-0.5">
+        <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-3 text-center">
+          <div className="text-2xl font-bold font-mono text-[var(--text-dim)] mb-0.5">
             {asteroids.length}
           </div>
-          <div className="text-white/30 text-[10px] uppercase tracking-wide">
+          <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wide">
             Total Today
           </div>
         </div>
@@ -83,28 +83,28 @@ export function AsteroidCard() {
               className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                 isHazardous
                   ? "bg-orange-500/5 border-orange-500/15"
-                  : "bg-white/[0.02] border-white/[0.04]"
+                  : "bg-[var(--surface)] border-[var(--border)]"
               }`}
             >
               <div className="flex-shrink-0">
                 {isHazardous ? (
-                  <AlertTriangle className="w-4 h-4 text-[#a1a1aa]" />
+                  <AlertTriangle className="w-4 h-4 text-[var(--text-dim)]" />
                 ) : (
-                  <Shield className="w-4 h-4 text-white/20" />
+                  <Shield className="w-4 h-4 text-[var(--text-faint)]" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white/70 text-xs font-medium truncate">
+                <p className="text-[var(--text-dim)] text-xs font-medium truncate">
                   {asteroid.name.replace(/[()]/g, "")}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-white/25 text-[10px]">
+                  <span className="text-[var(--text-faint)] text-[10px]">
                     ⌀ {(diameterAvg * 1000).toFixed(0)}m
                   </span>
                   {approach && (
                     <>
-                      <span className="text-white/15 text-[10px]">·</span>
-                      <span className="text-white/25 text-[10px]">
+                      <span className="text-[var(--text-faint)] text-[10px]">·</span>
+                      <span className="text-[var(--text-faint)] text-[10px]">
                         {(
                           parseFloat(approach.miss_distance.kilometers) /
                           1_000_000
@@ -117,7 +117,7 @@ export function AsteroidCard() {
               </div>
               {approach && (
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="text-[10px] text-white/25 font-mono">
+                  <div className="text-[10px] text-[var(--text-faint)] font-mono">
                     {parseFloat(
                       approach.relative_velocity.kilometers_per_hour
                     ).toFixed(0)}{" "}
@@ -141,7 +141,7 @@ export function AsteroidCard() {
       </div>
 
       {asteroids.length === 0 && (
-        <div className="text-center py-8 text-white/25 text-sm">
+        <div className="text-center py-8 text-[var(--text-faint)] text-sm">
           No asteroid data available today
         </div>
       )}

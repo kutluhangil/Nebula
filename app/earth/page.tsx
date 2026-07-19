@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Activity, Waves, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { MagnitudeChart } from "@/components/earth/magnitude-chart";
 
 // Leaflet must be dynamically imported (no SSR)
 const EarthquakeMap = dynamic(
@@ -53,13 +54,13 @@ export default function EarthPage() {
             <div className="badge-live">Live Monitor</div>
           </div>
           <h1
-            className="text-3xl md:text-4xl font-bold text-white/90"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            className="font-serif text-4xl md:text-5xl text-[var(--text)]"
+           
           >
             Earth{" "}
-            <span className="gradient-text-aurora">Intelligence</span>
+            <span className="italic text-[var(--accent)]">Intelligence</span>
           </h1>
-          <p className="text-white/30 text-sm mt-1">
+          <p className="text-[var(--text-faint)] text-sm mt-1">
             USGS · Earthquakes M4.0+ · Last 7 days
           </p>
         </motion.div>
@@ -70,9 +71,9 @@ export default function EarthPage() {
             {
               label: "Total Events",
               value: quakes.length,
-              color: "text-white/70",
-              bg: "bg-white/[0.03]",
-              border: "border-white/[0.06]",
+              color: "text-[var(--text-dim)]",
+              bg: "bg-[var(--surface)]",
+              border: "border-[var(--border)]",
             },
             {
               label: "Major (M6+)",
@@ -105,21 +106,26 @@ export default function EarthPage() {
               <div className={`text-2xl font-bold font-mono ${stat.color} mb-1`}>
                 {isLoading ? "—" : stat.value}
               </div>
-              <div className="text-white/30 text-xs uppercase tracking-wide">
+              <div className="text-[var(--text-faint)] text-xs uppercase tracking-wide">
                 {stat.label}
               </div>
             </motion.div>
           ))}
         </div>
 
+        {/* Distribution chart */}
+        <div className="mb-6">
+          <MagnitudeChart earthquakes={quakes} />
+        </div>
+
         {/* Map */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-emerald-400" />
-            <span className="text-white/60 font-semibold text-sm">
+            <span className="text-[var(--text-dim)] font-semibold text-sm">
               Interactive Seismic Map
             </span>
-            <div className="ml-auto flex items-center gap-3 text-xs text-white/25">
+            <div className="ml-auto flex items-center gap-3 text-xs text-[var(--text-faint)]">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                 M4-5
@@ -146,7 +152,7 @@ export default function EarthPage() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="text-white/60 font-semibold text-sm">
+              <span className="text-[var(--text-dim)] font-semibold text-sm">
                 Major Events (M6+)
               </span>
             </div>
@@ -162,10 +168,10 @@ export default function EarthPage() {
                     </span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white/70 font-medium text-sm">
+                    <p className="text-[var(--text-dim)] font-medium text-sm">
                       {q.properties.place}
                     </p>
-                    <p className="text-white/30 text-xs mt-0.5">
+                    <p className="text-[var(--text-faint)] text-xs mt-0.5">
                       {formatDistanceToNow(q.properties.time, {
                         addSuffix: true,
                       })}{" "}

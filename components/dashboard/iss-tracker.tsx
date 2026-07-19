@@ -8,7 +8,8 @@ import { MapPin, Gauge, ArrowUp } from "lucide-react";
 interface ISSPosition {
   iss_position: { latitude: string; longitude: string };
   timestamp: number;
-  message: string;
+  altitude?: number;
+  velocity?: number;
 }
 
 function ISSGlobe({
@@ -156,29 +157,33 @@ export function ISSTracker() {
           icon={MapPin}
           label="Latitude"
           value={`${lat.toFixed(4)}°`}
-          color="text-[#a1a1aa]"
+          color="text-[var(--text-dim)]"
         />
         <StatItem
           icon={MapPin}
           label="Longitude"
           value={`${lon.toFixed(4)}°`}
-          color="text-[#a1a1aa]"
+          color="text-[var(--text-dim)]"
         />
         <StatItem
           icon={ArrowUp}
           label="Altitude"
-          value="408 km"
+          value={data?.altitude ? `${Math.round(data.altitude)} km` : "— km"}
           color="text-cyan-400"
         />
         <StatItem
           icon={Gauge}
           label="Speed"
-          value="27,600 km/h"
-          color="text-[#a1a1aa]"
+          value={
+            data?.velocity
+              ? `${Math.round(data.velocity).toLocaleString()} km/h`
+              : "— km/h"
+          }
+          color="text-[var(--text-dim)]"
         />
       </div>
 
-      <div className="mt-3 pt-3 border-t border-white/[0.04] text-xs text-white/25 text-center font-mono">
+      <div className="mt-3 pt-3 border-t border-[var(--border)] text-xs text-[var(--text-faint)] text-center font-mono">
         Updated {data?.timestamp ? new Date(data.timestamp * 1000).toLocaleTimeString() : "—"}
       </div>
     </motion.div>
@@ -197,8 +202,8 @@ function StatItem({
   color: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-      <div className="flex items-center gap-1 text-white/30 text-[10px] uppercase tracking-wide">
+    <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
+      <div className="flex items-center gap-1 text-[var(--text-faint)] text-[10px] uppercase tracking-wide">
         <Icon className={`w-3 h-3 ${color}`} />
         {label}
       </div>

@@ -34,9 +34,9 @@ export default function FavoritesPage() {
       >
         <div className="flex items-center gap-3 mb-2">
           <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-          <h1 className="text-2xl font-bold text-white">Your Favorites</h1>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Your Favorites</h1>
         </div>
-        <p className="text-white/50">
+        <p className="text-[var(--text-dim)]">
           Saved space events, imagery, and alerts.
         </p>
       </motion.div>
@@ -47,11 +47,11 @@ export default function FavoritesPage() {
           animate={{ opacity: 1 }}
           className="text-center py-20"
         >
-          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <Star className="w-8 h-8 text-white/20" />
+          <div className="w-16 h-16 rounded-full bg-[var(--surface)] flex items-center justify-center mx-auto mb-4">
+            <Star className="w-8 h-8 text-[var(--text-faint)]" />
           </div>
-          <h3 className="text-white font-medium text-lg">No favorites yet</h3>
-          <p className="text-white/40 mt-1">
+          <h3 className="text-[var(--text)] font-medium text-lg">No favorites yet</h3>
+          <p className="text-[var(--text-faint)] mt-1">
             Click the star icon on any card to save it here.
           </p>
         </motion.div>
@@ -80,20 +80,20 @@ export default function FavoritesPage() {
               <div className="p-4 flex-1 flex flex-col relative z-10">
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+                    <div className="p-2 rounded-lg bg-[var(--surface)] backdrop-blur-sm border border-[var(--border)]">
                       {getIcon(item.type)}
                     </div>
                     <div>
-                      <h3 className="text-white font-medium leading-tight">{item.title}</h3>
+                      <h3 className="text-[var(--text)] font-medium leading-tight">{item.title}</h3>
                       {item.subtitle && (
-                        <p className="text-white/50 text-xs mt-0.5">{item.subtitle}</p>
+                        <p className="text-[var(--text-dim)] text-xs mt-0.5">{item.subtitle}</p>
                       )}
                     </div>
                   </div>
                   <FavoriteButton item={item} />
                 </div>
                 {item.date && (
-                  <p className="text-white/30 text-xs mt-auto pt-4">
+                  <p className="text-[var(--text-faint)] text-xs mt-auto pt-4">
                     {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
                   </p>
                 )}

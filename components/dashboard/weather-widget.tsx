@@ -48,31 +48,31 @@ export function WeatherWidget() {
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <Cloud className="w-4 h-4 text-sky-400" />
-          <span className="text-white/60 font-semibold text-sm">Space Coast Weather</span>
-          <span className="text-white/30 text-xs ml-auto">Cape Canaveral</span>
+          <span className="text-[var(--text-dim)] font-semibold text-sm">Space Coast Weather</span>
+          <span className="text-[var(--text-faint)] text-xs ml-auto">Cape Canaveral</span>
         </div>
 
         <div className="flex items-end gap-3 mb-6">
-          <div className="text-5xl font-light tracking-tighter text-white">
+          <div className="text-5xl font-light tracking-tighter text-[var(--text)]">
             {Math.round(current.temperature_2m)}°
           </div>
-          <div className="pb-1 text-white/50">C</div>
+          <div className="pb-1 text-[var(--text-dim)]">C</div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Sunrise className="w-4 h-4 text-[#a1a1aa]" />
+              <Sunrise className="w-4 h-4 text-[var(--text-dim)]" />
               <div>
-                <div className="text-white/30 text-[10px] uppercase tracking-wider">Sunrise</div>
-                <div className="text-white/80 text-sm font-mono">{format(new Date(daily.sunrise[0]), "HH:mm")}</div>
+                <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wider">Sunrise</div>
+                <div className="text-[var(--text)] text-sm font-mono">{format(new Date(daily.sunrise[0]), "HH:mm")}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Sunset className="w-4 h-4 text-rose-400" />
               <div>
-                <div className="text-white/30 text-[10px] uppercase tracking-wider">Sunset</div>
-                <div className="text-white/80 text-sm font-mono">{format(new Date(daily.sunset[0]), "HH:mm")}</div>
+                <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wider">Sunset</div>
+                <div className="text-[var(--text)] text-sm font-mono">{format(new Date(daily.sunset[0]), "HH:mm")}</div>
               </div>
             </div>
           </div>
@@ -81,15 +81,15 @@ export function WeatherWidget() {
             <div className="flex items-center gap-2">
               <Wind className="w-4 h-4 text-teal-400" />
               <div>
-                <div className="text-white/30 text-[10px] uppercase tracking-wider">Wind</div>
-                <div className="text-white/80 text-sm font-mono">{current.wind_speed_10m} km/h</div>
+                <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wider">Wind</div>
+                <div className="text-[var(--text)] text-sm font-mono">{current.wind_speed_10m} km/h</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-[#a1a1aa]" />
+              <Droplets className="w-4 h-4 text-[var(--text-dim)]" />
               <div>
-                <div className="text-white/30 text-[10px] uppercase tracking-wider">Humidity</div>
-                <div className="text-white/80 text-sm font-mono">{current.relative_humidity_2m}%</div>
+                <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wider">Humidity</div>
+                <div className="text-[var(--text)] text-sm font-mono">{current.relative_humidity_2m}%</div>
               </div>
             </div>
           </div>

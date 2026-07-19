@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const totalQuakes = earthquakeData?.features?.length || 0;
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 md:px-6 lg:px-8 selection:bg-white/10">
+    <div className="min-h-screen pt-24 pb-16 px-4 md:px-6 lg:px-8 selection:bg-[var(--surface-hover)]">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -44,18 +44,18 @@ export default function DashboardPage() {
         >
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-[var(--border)] bg-[var(--surface)] backdrop-blur-md">
                 <div className="live-dot" />
-                <span className="text-[10px] font-medium tracking-widest text-[#a1a1aa] uppercase">
+                <span className="text-[10px] font-medium tracking-widest text-[var(--text-dim)] uppercase">
                   Live Feed
                 </span>
               </div>
-              <span className="text-[#71717a] text-xs font-medium tracking-wide">
+              <span className="text-[var(--text-faint)] text-xs font-medium tracking-wide">
                 NASA · USGS · NOAA
               </span>
             </div>
-            <h1 className="font-serif text-4xl md:text-5xl text-[#fafafa] tracking-tight">
-              Planet <span className="italic text-[#a1a1aa]">Intelligence</span>
+            <h1 className="font-serif text-4xl md:text-5xl text-[var(--text)] tracking-tight">
+              Planet <span className="italic text-[var(--text-dim)]">Intelligence</span>
             </h1>
           </div>
           <StatsBar earthquakeCount={totalQuakes} />
@@ -194,10 +194,10 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between px-2">
       <div className="flex items-center gap-2.5">
-        <Icon className="w-4 h-4 text-[#d97757]" strokeWidth={1.5} />
-        <span className="text-[#fafafa] font-medium tracking-wide">{title}</span>
+        <Icon className="w-4 h-4 text-[var(--accent)]" strokeWidth={1.5} />
+        <span className="text-[var(--text)] font-medium tracking-wide">{title}</span>
       </div>
-      <div className="flex items-center gap-2 text-[#71717a] text-xs font-medium tracking-wider uppercase">
+      <div className="flex items-center gap-2 text-[var(--text-faint)] text-xs font-medium tracking-wider uppercase">
         {live && <div className="live-dot" />}
         {subtitle}
       </div>

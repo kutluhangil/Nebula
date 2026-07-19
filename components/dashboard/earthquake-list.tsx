@@ -24,9 +24,9 @@ interface EarthquakeFeature {
 
 function getMagColor(mag: number) {
   if (mag >= 7) return { text: "text-red-400", bg: "bg-red-500", ring: "ring-red-500/30" };
-  if (mag >= 6) return { text: "text-[#a1a1aa]", bg: "bg-orange-500", ring: "ring-orange-500/30" };
-  if (mag >= 5) return { text: "text-[#a1a1aa]", bg: "bg-yellow-500", ring: "ring-yellow-500/30" };
-  return { text: "text-[#a1a1aa]", bg: "bg-emerald-500", ring: "ring-emerald-500/20" };
+  if (mag >= 6) return { text: "text-[var(--text-dim)]", bg: "bg-orange-500", ring: "ring-orange-500/30" };
+  if (mag >= 5) return { text: "text-[var(--text-dim)]", bg: "bg-yellow-500", ring: "ring-yellow-500/30" };
+  return { text: "text-[var(--text-dim)]", bg: "bg-emerald-500", ring: "ring-emerald-500/20" };
 }
 
 function MagBadge({ mag }: { mag: number }) {
@@ -87,12 +87,12 @@ export function EarthquakeList() {
         animate={{ opacity: 1, y: 0 }}
         className="glass-panel overflow-hidden"
       >
-        <div className="flex items-center justify-between p-3 border-b border-white/[0.03]">
-          <span className="text-white/60 text-xs font-semibold uppercase tracking-widest pl-2">Recent Quakes</span>
+        <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
+          <span className="text-[var(--text-dim)] text-xs font-semibold uppercase tracking-widest pl-2">Recent Quakes</span>
           {permission === 'default' && (
             <button
               onClick={requestPermission}
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] text-white/40 text-[10px] transition-colors border border-white/[0.06]"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface)] hover:bg-[var(--surface)] text-[var(--text-faint)] text-[10px] transition-colors border border-[var(--border)]"
               title="Enable notifications for major earthquakes (>6.5)"
             >
               <Bell className="w-3 h-3" />
@@ -100,7 +100,7 @@ export function EarthquakeList() {
             </button>
           )}
         </div>
-        <div className="divide-y divide-white/[0.03]">
+        <div className="divide-y divide-[var(--border)]">
           {quakes.map((quake, i) => {
             const colors = getMagColor(quake.properties.mag);
             return (
@@ -110,33 +110,33 @@ export function EarthquakeList() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.03 }}
                 onClick={() => setSelected(quake)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left group"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface)] transition-colors text-left group"
                 aria-label={`Magnitude ${quake.properties.mag} earthquake near ${quake.properties.place}`}
               >
                 <MagBadge mag={quake.properties.mag} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white/70 text-sm font-medium truncate">
+                  <p className="text-[var(--text-dim)] text-sm font-medium truncate">
                     {quake.properties.place}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-white/25 text-xs">
+                    <span className="text-[var(--text-faint)] text-xs">
                       {formatDistanceToNow(quake.properties.time, {
                         addSuffix: true,
                       })}
                     </span>
-                    <span className="text-white/15 text-xs">·</span>
-                    <span className="text-white/25 text-xs">
+                    <span className="text-[var(--text-faint)] text-xs">·</span>
+                    <span className="text-[var(--text-faint)] text-xs">
                       Depth: {quake.geometry.coordinates[2].toFixed(1)}km
                     </span>
                     {quake.properties.tsunami === 1 && (
-                      <span className="flex items-center gap-0.5 text-[10px] text-[#a1a1aa] font-medium">
+                      <span className="flex items-center gap-0.5 text-[10px] text-[var(--text-dim)] font-medium">
                         <Waves className="w-2.5 h-2.5" />
                         Tsunami
                       </span>
                     )}
                   </div>
                 </div>
-                <Maximize2 className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" />
+                <Maximize2 className="w-3 h-3 text-[var(--text-faint)] group-hover:text-[var(--text-dim)] transition-colors flex-shrink-0" />
               </motion.button>
             );
           })}
@@ -150,7 +150,7 @@ export function EarthquakeList() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--surface)] backdrop-blur-sm"
             onClick={() => setSelected(null)}
           >
             <motion.div
@@ -158,7 +158,7 @@ export function EarthquakeList() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-panel p-6 max-w-md w-full border border-white/10"
+              className="glass-panel p-6 max-w-md w-full border border-[var(--border)]"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -169,12 +169,12 @@ export function EarthquakeList() {
                     >
                       M{selected.properties.mag.toFixed(1)}
                     </div>
-                    <div className="text-white/30 text-xs">Magnitude</div>
+                    <div className="text-[var(--text-faint)] text-xs">Magnitude</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelected(null)}
-                  className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center text-white/40 hover:text-white/70"
+                  className="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center text-[var(--text-faint)] hover:text-[var(--text-dim)]"
                   aria-label="Close modal"
                 >
                   <X className="w-4 h-4" />
@@ -196,14 +196,14 @@ export function EarthquakeList() {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-white/30 mt-0.5" />
-                  <span className="text-white/70 text-sm">
+                  <MapPin className="w-4 h-4 text-[var(--text-faint)] mt-0.5" />
+                  <span className="text-[var(--text-dim)] text-sm">
                     {selected.properties.place}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-white/30" />
-                  <span className="text-white/50 text-sm">
+                  <Clock className="w-4 h-4 text-[var(--text-faint)]" />
+                  <span className="text-[var(--text-dim)] text-sm">
                     {new Date(selected.properties.time).toLocaleString()}
                   </span>
                 </div>
@@ -225,12 +225,12 @@ export function EarthquakeList() {
                   ].map((stat) => (
                     <div
                       key={stat.label}
-                      className="bg-white/[0.03] rounded-lg p-3 text-center"
+                      className="bg-[var(--surface)] rounded-lg p-3 text-center"
                     >
-                      <div className="text-white/25 text-[10px] uppercase tracking-wide mb-1">
+                      <div className="text-[var(--text-faint)] text-[10px] uppercase tracking-wide mb-1">
                         {stat.label}
                       </div>
-                      <div className="text-white/70 text-sm font-mono font-semibold">
+                      <div className="text-[var(--text-dim)] text-sm font-mono font-semibold">
                         {stat.value}
                       </div>
                     </div>
@@ -238,7 +238,7 @@ export function EarthquakeList() {
                 </div>
 
                 {selected.properties.tsunami === 1 && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[#a1a1aa] text-sm">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[var(--text-dim)] text-sm">
                     <Waves className="w-4 h-4" />
                     Tsunami warning issued for this event
                   </div>

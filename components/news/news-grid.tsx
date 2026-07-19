@@ -42,14 +42,14 @@ export function NewsGrid() {
   if (status === "pending") {
     return (
       <div className="w-full flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 text-[#71717a] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[var(--text-faint)] animate-spin" />
       </div>
     );
   }
 
   if (status === "error") {
     return (
-      <div className="w-full text-center py-20 text-[#a1a1aa]">
+      <div className="w-full text-center py-20 text-[var(--text-dim)]">
         Failed to load news. Please try again later.
       </div>
     );
@@ -74,11 +74,11 @@ export function NewsGrid() {
         className="flex items-center justify-center py-8"
       >
         {isFetchingNextPage ? (
-          <Loader2 className="w-5 h-5 text-[#71717a] animate-spin" />
+          <Loader2 className="w-5 h-5 text-[var(--text-faint)] animate-spin" />
         ) : hasNextPage ? (
-          <span className="text-sm text-[#71717a]">Scroll for more</span>
+          <span className="text-sm text-[var(--text-faint)]">Scroll for more</span>
         ) : (
-          <span className="text-sm text-[#71717a]">You have reached the end</span>
+          <span className="text-sm text-[var(--text-faint)]">You have reached the end</span>
         )}
       </div>
     </div>

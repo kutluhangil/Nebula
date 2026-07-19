@@ -67,7 +67,7 @@ function Countdown({ targetDate }: { targetDate: string }) {
               {pad(value)}
             </span>
           </div>
-          <div className="text-[9px] text-white/25 mt-1 tracking-widest">
+          <div className="text-[9px] text-[var(--text-faint)] mt-1 tracking-widest">
             {label}
           </div>
         </div>
@@ -95,13 +95,13 @@ export default function LaunchesPage() {
           className="mb-8"
         >
           <h1
-            className="text-3xl md:text-4xl font-bold text-white/90"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            className="font-serif text-4xl md:text-5xl text-[var(--text)]"
+           
           >
             SpaceX{" "}
-            <span className="gradient-text-purple">Launches</span>
+            <span className="italic text-[var(--accent)]">Launches</span>
           </h1>
-          <p className="text-white/30 text-sm mt-1">
+          <p className="text-[var(--text-faint)] text-sm mt-1">
             Real-time launch data · SpaceX API
           </p>
         </motion.div>
@@ -119,7 +119,7 @@ export default function LaunchesPage() {
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+              <div className="w-20 h-20 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
                 {nextLaunch.links?.patch?.large ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -132,10 +132,10 @@ export default function LaunchesPage() {
                 )}
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-white/90 mb-1">
+                <h2 className="text-xl font-bold text-[var(--text)] mb-1">
                   {nextLaunch.name}
                 </h2>
-                <div className="flex items-center gap-2 text-white/30 text-sm mb-4">
+                <div className="flex items-center gap-2 text-[var(--text-faint)] text-sm mb-4">
                   <Calendar className="w-4 h-4" />
                   {format(new Date(nextLaunch.date_utc), "PPP")} ·{" "}
                   {formatDistanceToNow(new Date(nextLaunch.date_utc), {
@@ -162,7 +162,7 @@ export default function LaunchesPage() {
         {/* Upcoming list */}
         {data?.upcoming && data.upcoming.length > 1 && (
           <div className="mb-6">
-            <h2 className="text-white/60 font-semibold text-sm mb-3 flex items-center gap-2">
+            <h2 className="text-[var(--text-dim)] font-semibold text-sm mb-3 flex items-center gap-2">
               <Clock className="w-4 h-4 text-violet-400" />
               Upcoming Missions
             </h2>
@@ -175,7 +175,7 @@ export default function LaunchesPage() {
                   transition={{ delay: i * 0.05 }}
                   className="glass-card p-4 flex items-center gap-4"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
                     {launch.links?.patch?.small ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -184,24 +184,24 @@ export default function LaunchesPage() {
                         className="w-8 h-8 object-contain"
                       />
                     ) : (
-                      <Rocket className="w-4 h-4 text-white/30" />
+                      <Rocket className="w-4 h-4 text-[var(--text-faint)]" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-white/70 font-medium text-sm">
+                    <p className="text-[var(--text-dim)] font-medium text-sm">
                       {launch.name}
                     </p>
                     {launch.details && (
-                      <p className="text-white/30 text-xs mt-0.5 line-clamp-1">
+                      <p className="text-[var(--text-faint)] text-xs mt-0.5 line-clamp-1">
                         {launch.details}
                       </p>
                     )}
                   </div>
                   <div className="text-right">
-                    <div className="text-white/40 text-xs">
+                    <div className="text-[var(--text-faint)] text-xs">
                       {format(new Date(launch.date_utc), "MMM d, yyyy")}
                     </div>
-                    <div className="text-white/20 text-xs">
+                    <div className="text-[var(--text-faint)] text-xs">
                       {formatDistanceToNow(new Date(launch.date_utc), {
                         addSuffix: true,
                       })}
@@ -216,7 +216,7 @@ export default function LaunchesPage() {
         {/* Latest launch */}
         {data?.latest && (
           <div>
-            <h2 className="text-white/60 font-semibold text-sm mb-3 flex items-center gap-2">
+            <h2 className="text-[var(--text-dim)] font-semibold text-sm mb-3 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-emerald-400" />
               Most Recent Launch
             </h2>
@@ -226,7 +226,7 @@ export default function LaunchesPage() {
               className="glass-card p-5"
             >
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
                   {data.latest.links?.patch?.large ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -235,12 +235,12 @@ export default function LaunchesPage() {
                       className="w-12 h-12 object-contain"
                     />
                   ) : (
-                    <Rocket className="w-6 h-6 text-white/30" />
+                    <Rocket className="w-6 h-6 text-[var(--text-faint)]" />
                   )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-white/80 font-bold text-base">
+                    <h3 className="text-[var(--text)] font-bold text-base">
                       {data.latest.name}
                     </h3>
                     {data.latest.success ? (
@@ -253,11 +253,11 @@ export default function LaunchesPage() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="text-white/30 text-xs mb-3">
+                  <div className="text-[var(--text-faint)] text-xs mb-3">
                     {format(new Date(data.latest.date_utc), "PPP")}
                   </div>
                   {data.latest.details && (
-                    <p className="text-white/40 text-sm leading-relaxed">
+                    <p className="text-[var(--text-faint)] text-sm leading-relaxed">
                       {data.latest.details}
                     </p>
                   )}

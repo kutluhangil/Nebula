@@ -34,8 +34,8 @@ export function APODCard() {
 
   if (!data || data.media_type === "video") {
     return (
-      <div className="glass-panel p-6 flex items-center justify-center h-80 text-white/30">
-        <p>Today&apos;s APOD is a video. <a href={data?.url} target="_blank" rel="noopener noreferrer" className="text-[#a1a1aa] hover:underline">Watch it here</a></p>
+      <div className="glass-panel p-6 flex items-center justify-center h-80 text-[var(--text-faint)]">
+        <p>Today&apos;s APOD is a video. <a href={data?.url} target="_blank" rel="noopener noreferrer" className="text-[var(--text-dim)] hover:underline">Watch it here</a></p>
       </div>
     );
   }
@@ -70,7 +70,7 @@ export function APODCard() {
           <div className="absolute top-3 right-3 flex gap-2">
             <button
               onClick={() => setFullscreen(true)}
-              className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all"
+              className="w-8 h-8 rounded-lg bg-[var(--surface)] backdrop-blur-sm border border-[var(--border)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all"
               aria-label="Fullscreen"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -79,10 +79,10 @@ export function APODCard() {
 
           {/* Bottom info */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h3 className="text-white font-bold text-lg leading-tight mb-1">
+            <h3 className="text-[var(--text)] font-bold text-lg leading-tight mb-1">
               {data.title}
             </h3>
-            <p className="text-white/50 text-xs">
+            <p className="text-[var(--text-dim)] text-xs">
               {data.date}
               {data.copyright && ` · © ${data.copyright}`}
             </p>
@@ -91,7 +91,7 @@ export function APODCard() {
 
         {/* Body */}
         <div className="p-4">
-          <p className="text-white/50 text-sm leading-relaxed line-clamp-3">
+          <p className="text-[var(--text-dim)] text-sm leading-relaxed line-clamp-3">
             {data.explanation}
           </p>
 
@@ -111,7 +111,7 @@ export function APODCard() {
             )}
             <button
               onClick={handleShare}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs font-medium hover:text-white/70 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-faint)] text-xs font-medium hover:text-[var(--text-dim)] transition-all"
               aria-label="Share"
             >
               <Share2 className="w-3.5 h-3.5" />
@@ -121,7 +121,7 @@ export function APODCard() {
               href={data.hdurl || data.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs font-medium hover:text-white/70 transition-all ml-auto"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-faint)] text-xs font-medium hover:text-[var(--text-dim)] transition-all ml-auto"
             >
               HD <ExternalLink className="w-3 h-3" />
             </a>
@@ -132,7 +132,7 @@ export function APODCard() {
       {/* Fullscreen modal */}
       {fullscreen && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[var(--surface)] backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setFullscreen(false)}
         >
           <div className="relative max-w-5xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
@@ -146,7 +146,7 @@ export function APODCard() {
             />
             <button
               onClick={() => setFullscreen(false)}
-              className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-black/60 text-white/60 hover:text-white flex items-center justify-center"
+              className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-[var(--surface)] text-[var(--text-dim)] hover:text-[var(--text)] flex items-center justify-center"
               aria-label="Close fullscreen"
             >
               ✕

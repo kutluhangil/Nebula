@@ -39,7 +39,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       icon: Activity,
       label: "Earthquakes (7d)",
       value: earthquakeCount || "—",
-      color: "text-[#a1a1aa]",
+      color: "text-[var(--text-dim)]",
       bg: "bg-emerald-500/5",
       border: "border-emerald-500/10",
     },
@@ -47,7 +47,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       icon: Satellite,
       label: "ISS Speed",
       value: "27,600 km/h",
-      color: "text-[#a1a1aa]",
+      color: "text-[var(--text-dim)]",
       bg: "bg-blue-500/5",
       border: "border-blue-500/10",
     },
@@ -55,7 +55,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       icon: Rocket,
       label: "Upcoming Launches",
       value: upcomingLaunches || "—",
-      color: "text-[#a1a1aa]",
+      color: "text-[var(--text-dim)]",
       bg: "bg-violet-500/5",
       border: "border-violet-500/10",
     },
@@ -63,7 +63,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       icon: AlertTriangle,
       label: "Hazardous Asteroids",
       value: hazardousAsteroids !== undefined ? hazardousAsteroids : "—",
-      color: "text-[#a1a1aa]",
+      color: "text-[var(--text-dim)]",
       bg: "bg-orange-500/5",
       border: "border-orange-500/10",
     },
@@ -71,7 +71,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       icon: Zap,
       label: "Solar Activity",
       value: "KP 2",
-      color: "text-[#a1a1aa]",
+      color: "text-[var(--text-dim)]",
       bg: "bg-yellow-500/5",
       border: "border-yellow-500/10",
     },
@@ -99,7 +99,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
           >
             <div className="flex items-center gap-1.5 mb-2">
               <Icon className={`w-3 h-3 ${stat.color}`} />
-              <span className="text-[10px] text-white/25 uppercase tracking-wide truncate">
+              <span className="text-[10px] text-[var(--text-faint)] uppercase tracking-wide truncate">
                 {stat.label}
               </span>
             </div>

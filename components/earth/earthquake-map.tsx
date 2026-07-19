@@ -36,7 +36,7 @@ export default function EarthquakeMap({
 }) {
   return (
     <div
-      className="rounded-2xl overflow-hidden border border-white/[0.06]"
+      className="rounded-2xl overflow-hidden border border-[var(--border)]"
       style={{ height: "500px" }}
     >
       <MapContainer
@@ -67,7 +67,7 @@ export default function EarthquakeMap({
               fillOpacity={0.4}
             >
               <Popup className="nebula-popup">
-                <div className="bg-gray-900 text-white p-3 rounded-lg min-w-[200px]">
+                <div className="bg-gray-900 text-[var(--text)] p-3 rounded-lg min-w-[200px]">
                   <div className="flex items-center gap-2 mb-2">
                     <span
                       className="text-lg font-bold font-mono"

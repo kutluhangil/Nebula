@@ -132,13 +132,13 @@ export default function TimelinePage() {
           className="mb-8"
         >
           <h1
-            className="text-3xl md:text-4xl font-bold text-white/90"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            className="font-serif text-4xl md:text-5xl text-[var(--text)]"
+           
           >
             Unified{" "}
-            <span className="gradient-text-blue">Timeline</span>
+            <span className="italic text-[var(--accent)]">Timeline</span>
           </h1>
-          <p className="text-white/30 text-sm mt-1">
+          <p className="text-[var(--text-faint)] text-sm mt-1">
             All events — earthquakes, launches, astronomy — in chronological order
           </p>
         </motion.div>
@@ -146,7 +146,7 @@ export default function TimelinePage() {
         {/* Timeline */}
         <div className="relative">
           {/* Line */}
-          <div className="absolute left-5 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500/20 via-white/[0.04] to-transparent" />
+          <div className="absolute left-5 top-0 bottom-0 w-px bg-gradient-to-b from-[var(--accent)] via-[var(--border)] to-transparent opacity-60" />
 
           <div className="space-y-3">
             {events.map((event, i) => {
@@ -166,7 +166,7 @@ export default function TimelinePage() {
                     className={`absolute left-3 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
                       isUpcoming
                         ? "bg-violet-500/20 border border-violet-500/40"
-                        : "bg-black border border-white/10"
+                        : "bg-[var(--bg)] border border-[var(--border)]"
                     }`}
                   >
                     <Icon
@@ -183,7 +183,7 @@ export default function TimelinePage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-white/70 text-sm font-medium truncate">
+                          <span className="text-[var(--text-dim)] text-sm font-medium truncate">
                             {event.title}
                           </span>
                           {isUpcoming && (
@@ -192,13 +192,13 @@ export default function TimelinePage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-white/30 text-xs">{event.subtitle}</p>
+                        <p className="text-[var(--text-faint)] text-xs">{event.subtitle}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-white/25 text-xs">
+                        <div className="text-[var(--text-faint)] text-xs">
                           {formatDistanceToNow(event.time, { addSuffix: true })}
                         </div>
-                        <div className="text-white/15 text-[10px] font-mono mt-0.5">
+                        <div className="text-[var(--text-faint)] text-[10px] font-mono mt-0.5">
                           {format(event.time, "MMM d, HH:mm")} UTC
                         </div>
                       </div>
@@ -210,7 +210,7 @@ export default function TimelinePage() {
           </div>
 
           {events.length === 0 && (
-            <div className="text-center py-20 text-white/30">
+            <div className="text-center py-20 text-[var(--text-faint)]">
               <Clock className="w-8 h-8 mx-auto mb-3 opacity-30" />
               <p>Loading timeline events...</p>
             </div>
