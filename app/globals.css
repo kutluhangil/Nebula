@@ -499,3 +499,50 @@ body {
   border: 1px solid var(--border);
   box-shadow: var(--panel-shadow) !important;
 }
+
+/* ============================================================
+   Ambient Effects (Film Grain, Scanline, Data Flash)
+   ============================================================ */
+.film-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  z-index: 50;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .film-grain {
+  opacity: 0.05;
+}
+
+.radar-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--accent-cyan) 10%,
+    transparent 20%
+  );
+  opacity: 0.04;
+  height: 200%;
+  width: 100%;
+  animation: scanline 10s linear infinite;
+  z-index: 49;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0%); }
+}
+
+.data-flash {
+  animation: data-flash-anim 0.8s ease-out;
+}
+
+@keyframes data-flash-anim {
+  0% { text-shadow: 0 0 8px var(--accent-cyan); color: var(--accent-cyan); }
+  100% { text-shadow: none; }
+}

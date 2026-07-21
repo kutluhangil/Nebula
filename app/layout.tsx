@@ -79,8 +79,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased w-full overflow-x-hidden">
-        {/* Ambient mission-control backdrop: blueprint grid + nebula glow */}
+        {/* Ambient mission-control backdrop: blueprint grid + nebula glow + noise + scanline */}
         <div className="ambient-grid" aria-hidden="true" />
+        <div className="film-grain" aria-hidden="true" />
+        <div className="radar-scanline" aria-hidden="true" />
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none w-full" aria-hidden="true">
           <div className="glow-blob glow-blue w-[700px] h-[700px] top-[-250px] left-[-150px]" />
           <div className="glow-blob glow-violet w-[600px] h-[600px] bottom-[-200px] right-[-150px]" />

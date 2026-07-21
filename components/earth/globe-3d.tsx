@@ -2,18 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { Html, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { useQuery } from "@tanstack/react-query";
 import { magnitudeColor } from "@/lib/dataviz";
 
 /* ---------------------------------------------------------------------------
-   A real 3D Earth for the hero: a dotted point-cloud globe that reads land
-   from ocean, with the live ISS position and recent significant earthquakes
-   fixed to their true coordinates. It spins slowly on its own; markers reveal
-   a label on hover. Colours are pulled from the theme tokens and refresh when
-   the light/dark theme changes. Data comes from the existing /api/iss and
-   /api/earthquakes routes — no new sources.
+   A realistic 3D Earth: textured mesh with a cloud layer, day/night lighting,
+   and thousands of orbiting satellite particles. Includes the live ISS position
+   and recent significant earthquakes fixed to their true coordinates.
 --------------------------------------------------------------------------- */
 
 const R = 1;
@@ -29,50 +26,50 @@ function latLonToVec3(lat: number, lon: number, r = R): THREE.Vector3 {
   );
 }
 
-// Coarse continent centres [lat, lon, angularRadius°] — a Fibonacci point
-// within one of these is treated as land (brighter). Stylised, not a real map.
-const LAND: Array<[number, number, number]> = [
-  [54, -108, 26], [39, -98, 15], [-12, -58, 24], [52, 12, 17],
-  [8, 20, 30], [-4, 24, 22], [58, 90, 34], [28, 78, 18],
-  [40, 116, 16], [-25, 133, 15],
-];
-
-function isLand(latRad: number, lonRad: number): boolean {
-  const D2R = Math.PI / 180;
-  for (const [clat, clon, cr] of LAND) {
-    const dlat = latRad - clat * D2R;
-    let dlon = lonRad - clon * D2R;
-    if (dlon > Math.PI) dlon -= 2 * Math.PI;
-    if (dlon < -Math.PI) dlon += 2 * Math.PI;
-    const d = Math.sqrt(
-      dlat * dlat + dlon * dlon * Math.cos(latRad) * Math.cos(latRad)
-    );
-    if (d < cr * D2R) return true;
-  }
-  return false;
-}
-
-/** Two Fibonacci-lattice point clouds on the unit sphere: land and ocean. */
-function useEarthPoints() {
+/** Generates thousands of random points for the satellite swarm */
+function useSatellitePoints() {
   return useMemo(() => {
-    const count = 4200;
-    const golden = Math.PI * (3 - Math.sqrt(5));
-    const land: number[] = [];
-    const ocean: number[] = [];
+    const count = 3500;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    
+    // Mix of colors: cyan, white, red, blue
+    const colorOptions = [
+      new THREE.Color("#37e0e8"), // cyan
+      new THREE.Color("#ffffff"), // white
+      new THREE.Color("#ff5230"), // red
+      new THREE.Color("#5e8bff"), // blue
+    ];
+
     for (let i = 0; i < count; i++) {
-      const y = 1 - (i / (count - 1)) * 2;
-      const rad = Math.sqrt(1 - y * y);
-      const theta = i * golden;
-      const x = Math.cos(theta) * rad;
-      const z = Math.sin(theta) * rad;
-      const latRad = Math.asin(y);
-      const lonRad = Math.atan2(z, x);
-      (isLand(latRad, lonRad) ? land : ocean).push(x, y, z);
+      // Random position on sphere slightly larger than Earth
+      // R=1, Satellites orbit between R+0.05 and R+0.25
+      const r = R + 0.05 + Math.random() * 0.20; 
+      const theta = 2 * Math.PI * Math.random();
+      const phi = Math.acos(2 * Math.random() - 1);
+      
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = r * Math.sin(phi) * Math.sin(theta);
+      const z = r * Math.cos(phi);
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      // Heavy bias towards cyan/blue/white, rarely red
+      const rand = Math.random();
+      let c;
+      if (rand < 0.4) c = colorOptions[0]; // cyan
+      else if (rand < 0.8) c = colorOptions[1]; // white
+      else if (rand < 0.95) c = colorOptions[3]; // blue
+      else c = colorOptions[2]; // red
+
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
     }
-    return {
-      land: new Float32Array(land),
-      ocean: new Float32Array(ocean),
-    };
+    
+    return { positions, colors };
   }, []);
 }
 
@@ -226,8 +223,18 @@ function ISSMarker({
 
 function Globe({ reduce }: { reduce: boolean }) {
   const group = useRef<THREE.Group>(null);
+  const satellitesRef = useRef<THREE.Points>(null);
   const colors = useThemeColors();
-  const { land, ocean } = useEarthPoints();
+  
+  // High-res public textures for realistic Earth
+  const [colorMap, bumpMap, specularMap, cloudsMap] = useTexture([
+    "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+    "https://unpkg.com/three-globe/example/img/earth-topology.png",
+    "https://unpkg.com/three-globe/example/img/earth-water.png",
+    "https://unpkg.com/three-globe/example/img/earth-clouds10k.png",
+  ]);
+
+  const { positions: satPositions, colors: satColors } = useSatellitePoints();
 
   const { data: iss } = useQuery<{
     iss_position: { latitude: string; longitude: string };
@@ -252,7 +259,14 @@ function Globe({ reduce }: { reduce: boolean }) {
   );
 
   useFrame((_, delta) => {
-    if (group.current && !reduce) group.current.rotation.y += delta * 0.075;
+    if (group.current && !reduce) {
+      group.current.rotation.y += delta * 0.05;
+    }
+    // Rotate satellites slightly faster on a different axis to simulate orbit
+    if (satellitesRef.current && !reduce) {
+      satellitesRef.current.rotation.y -= delta * 0.02;
+      satellitesRef.current.rotation.z += delta * 0.01;
+    }
   });
 
   const issLat = iss ? parseFloat(iss.iss_position.latitude) : null;
@@ -260,52 +274,67 @@ function Globe({ reduce }: { reduce: boolean }) {
 
   return (
     <group ref={group} rotation={[0.35, 0, 0.1]}>
-      {/* opaque core hides the far-side points for a solid-planet read */}
+      
+      {/* Lighting for day/night effect */}
+      <ambientLight intensity={0.05} />
+      {/* Strong directional light acting as the Sun */}
+      <directionalLight position={[5, 3, 5]} intensity={2.5} />
+      {/* Soft backlight so the dark side isn't pitch black */}
+      <directionalLight position={[-5, -3, -5]} intensity={0.2} color={colors.accent} />
+
+      {/* Realistic Earth Mesh */}
       <mesh>
-        <sphereGeometry args={[R - 0.015, 48, 48]} />
-        <meshBasicMaterial color={colors.core} />
+        <sphereGeometry args={[R, 64, 64]} />
+        <meshStandardMaterial
+          map={colorMap}
+          bumpMap={bumpMap}
+          bumpScale={0.015}
+          roughnessMap={specularMap}
+          roughness={0.7}
+          metalness={0.1}
+        />
       </mesh>
 
-      {/* ocean dots */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[ocean, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          color={colors.ocean}
-          size={0.011}
-          sizeAttenuation
-          transparent
-          opacity={0.5}
-          depthWrite={false}
-        />
-      </points>
-
-      {/* land dots */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[land, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          color={colors.accent}
-          size={0.018}
-          sizeAttenuation
-          transparent
-          opacity={0.95}
-          depthWrite={false}
-        />
-      </points>
-
-      {/* atmosphere halo */}
+      {/* Cloud Layer */}
       <mesh>
-        <sphereGeometry args={[R + 0.06, 48, 48]} />
+        <sphereGeometry args={[R + 0.008, 64, 64]} />
+        <meshStandardMaterial
+          map={cloudsMap}
+          transparent={true}
+          opacity={0.4}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Atmosphere Halo */}
+      <mesh>
+        <sphereGeometry args={[R + 0.04, 48, 48]} />
         <meshBasicMaterial
           color={colors.accent}
           transparent
-          opacity={0.06}
+          opacity={0.08}
           side={THREE.BackSide}
+          blending={THREE.AdditiveBlending}
         />
       </mesh>
+
+      {/* Satellite Particle Swarm */}
+      <points ref={satellitesRef}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[satPositions, 3]} />
+          <bufferAttribute attach="attributes-color" args={[satColors, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.012}
+          vertexColors={true}
+          transparent={true}
+          opacity={0.8}
+          sizeAttenuation={true}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </points>
 
       {quakes.map((q) => (
         <QuakeMarker key={q.id} quake={q} />
@@ -322,14 +351,13 @@ export default function Globe3D() {
   const reduce = usePrefersReducedMotion();
   return (
     <Canvas
-      camera={{ position: [0, 0, 2.7], fov: 42 }}
+      camera={{ position: [0, 0, 2.8], fov: 45 }}
       dpr={[1, 2]}
       frameloop={reduce ? "demand" : "always"}
       gl={{ antialias: true, alpha: true }}
       style={{ width: "100%", height: "100%" }}
-      aria-label="Interactive 3D globe showing the live ISS position and recent earthquakes"
+      aria-label="Interactive 3D realistic globe showing satellites, the live ISS position and recent earthquakes"
     >
-      <ambientLight intensity={0.9} />
       <Globe reduce={reduce} />
     </Canvas>
   );

@@ -1,5 +1,44 @@
-import { Globe, Mail, ArrowUpRight } from "lucide-react";
+"use client";
+
+import { Globe, Mail, ArrowUpRight, Activity } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { SpotlightCard } from "./ui/spotlight-card";
+import { ScrambleText } from "./ui/scramble-text";
+
+function FooterClock() {
+  const [dt, setDt] = useState({ time: "--:--:--", date: "" });
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setDt({
+        time: now.toLocaleTimeString("en-US", {
+          timeZone: "UTC",
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+        date: now.toLocaleDateString("en-US", {
+          timeZone: "UTC",
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        }),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2 font-mono text-xs text-[var(--text-faint)] tracking-widest uppercase">
+      <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-faint)] opacity-50 animate-pulse" />
+      UTC {dt.time}
+    </div>
+  );
+}
 
 export function Footer() {
   return (
@@ -19,7 +58,7 @@ export function Footer() {
                 <Globe className="w-6 h-6 text-[var(--accent)] relative z-10" strokeWidth={1.5} />
               </div>
               <span className="font-serif text-3xl tracking-tight text-[var(--text)] transition-colors">
-                Nebula.
+                <ScrambleText text="Nebula." duration={1500} />
               </span>
             </Link>
             <p className="text-[var(--text-dim)] text-base leading-relaxed mb-8 font-light">
@@ -57,15 +96,34 @@ export function Footer() {
               </ul>
             </div>
 
-            <div>
-              <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider">Sources</h4>
+            <SpotlightCard className="p-6 -m-6 border-none bg-transparent">
+              <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[var(--text-faint)]" /> System Status
+              </h4>
               <ul className="space-y-4">
-                <li><a href="https://api.nasa.gov/" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1 group">NASA Open APIs <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a></li>
-                <li><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1 group">USGS Earthquakes <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a></li>
-                <li><a href="https://github.com/r-spacex/SpaceX-API" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1 group">SpaceX API <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a></li>
-                <li><a href="https://spaceflightnewsapi.net/" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1 group">Spaceflight News <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a></li>
+                <li className="flex items-center justify-between group">
+                  <a href="https://api.nasa.gov/" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">NASA Open APIs <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                  </div>
+                </li>
+                <li className="flex items-center justify-between group">
+                  <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">USGS Earthquakes <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                  </div>
+                </li>
+                <li className="flex items-center justify-between group">
+                  <a href="https://github.com/r-spacex/SpaceX-API" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">SpaceX API <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                  </div>
+                </li>
               </ul>
-            </div>
+            </SpotlightCard>
 
             <div>
               <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider">Company</h4>
@@ -80,9 +138,12 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[var(--text-faint)] text-sm text-center md:text-left font-light">
-            © {new Date().getFullYear()} Nebula. Built for discovery.
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-[var(--text-faint)] text-sm text-center md:text-left font-light">
+              © {new Date().getFullYear()} Nebula. <ScrambleText text="Built for discovery." duration={2000} />
+            </p>
+          </div>
+          <FooterClock />
           <div className="flex items-center gap-8 text-sm text-[var(--text-faint)] font-light">
             <Link href="#" className="hover:text-[var(--text)] transition-colors">Privacy</Link>
             <Link href="#" className="hover:text-[var(--text)] transition-colors">Terms</Link>
