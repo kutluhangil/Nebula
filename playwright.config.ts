@@ -10,7 +10,11 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  reporter: process.env.CI ? "github" : "list",
+  // "github" annotates failures inline on the PR; the HTML report is what the
+  // workflow uploads as an artifact, so CI needs both.
+  reporter: process.env.CI
+    ? [["github"], ["html", { open: "never" }]]
+    : [["list"]],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   use: {
