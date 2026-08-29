@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Cloud, Sun, Sunrise, Sunset, Droplets, Wind, Moon } from "lucide-react";
+import { Cloud, Sun, Sunrise, Sunset, Droplets, Wind, Moon, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { fetchJson } from "@/lib/api-client";
+import { useLocation } from "@/hooks/use-location";
 
 interface WeatherData {
   current: {
@@ -18,12 +19,21 @@ interface WeatherData {
     sunrise: string[];
     sunset: string[];
   };
+  locationLabel: string | null;
+  isLocalLocation: boolean;
 }
 
 export function WeatherWidget() {
+  const { coords, status, request } = useLocation();
+
   const { data, isLoading } = useQuery<WeatherData>({
-    queryKey: ["weather"],
-    queryFn: () => fetchJson("/api/weather"),
+    queryKey: ["weather", coords?.lat ?? null, coords?.lon ?? null],
+    queryFn: () =>
+      fetchJson(
+        coords
+          ? `/api/weather?lat=${coords.lat}&lon=${coords.lon}`
+          : "/api/weather"
+      ),
     refetchInterval: 1000 * 60 * 30, // 30 mins
   });
 
@@ -49,8 +59,27 @@ export function WeatherWidget() {
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <Cloud className="w-4 h-4 text-sky-400" />
-          <span className="text-[var(--text-dim)] font-semibold text-sm">Space Coast Weather</span>
-          <span className="text-[var(--text-faint)] text-xs ml-auto">Cape Canaveral</span>
+          <span className="text-[var(--text-dim)] font-semibold text-sm">
+            {data.isLocalLocation ? "Local Weather" : "Space Coast Weather"}
+          </span>
+          {data.isLocalLocation ? (
+            <span className="text-[var(--text-faint)] text-xs ml-auto">Your location</span>
+          ) : status === "prompting" ? (
+            <span className="text-[var(--text-faint)] text-xs ml-auto">Locating…</span>
+          ) : status === "denied" || status === "unavailable" ? (
+            <span className="text-[var(--text-faint)] text-xs ml-auto">
+              {data.locationLabel}
+            </span>
+          ) : (
+            <button
+              onClick={request}
+              className="flex items-center gap-1 ml-auto text-[var(--text-faint)] text-xs hover:text-[var(--text-dim)] transition-colors"
+              aria-label="Use my location for weather"
+            >
+              <MapPin className="w-3 h-3" />
+              {data.locationLabel} · Use my location
+            </button>
+          )}
         </div>
 
         <div className="flex items-end gap-3 mb-6">

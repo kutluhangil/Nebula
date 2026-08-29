@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -26,11 +29,13 @@
     "react-intersection-observer": "^10.1.0",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.9.2",
+    "satellite.js": "^7.1.0",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",

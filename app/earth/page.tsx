@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Activity, Waves, AlertTriangle, Focus, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -11,6 +11,13 @@ import { DepthChart } from "@/components/earth/depth-chart";
 import { MAGNITUDE_BANDS } from "@/lib/dataviz";
 import { useWatchlist, type EarthquakeThreshold } from "@/hooks/use-watchlist";
 import { fetchJson } from "@/lib/api-client";
+import {
+  EVENT_CATEGORIES,
+  EVENT_LAYERS,
+  type EventCategory,
+  type EventsResponse,
+  type NaturalEvent,
+} from "@/lib/natural-events";
 
 // Leaflet must be dynamically imported (no SSR)
 const EarthquakeMap = dynamic(
@@ -33,6 +40,7 @@ interface EarthquakeFeature {
 
 export default function EarthPage() {
   const [mapFocused, setMapFocused] = useState(false);
+  const [activeLayers, setActiveLayers] = useState<EventCategory[]>([]);
   const {
     earthquakeThreshold,
     tsunamiOnly,
@@ -44,6 +52,28 @@ export default function EarthPage() {
     queryFn: () => fetchJson("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
   });
+
+  const layerQueries = useQueries({
+    queries: EVENT_CATEGORIES.map((category) => ({
+      queryKey: ["events", category],
+      queryFn: () => fetchJson<EventsResponse>(`/api/events?category=${category}`),
+      enabled: activeLayers.includes(category),
+      staleTime: 1000 * 60 * 30,
+    })),
+  });
+
+  const naturalEvents: NaturalEvent[] = layerQueries.flatMap(
+    (query) => query.data?.events ?? []
+  );
+  const layersLoading = layerQueries.some((query) => query.isLoading);
+  const failedLayer = layerQueries.find((query) => query.isError);
+
+  const toggleLayer = (category: EventCategory) =>
+    setActiveLayers((current) =>
+      current.includes(category)
+        ? current.filter((c) => c !== category)
+        : [...current, category]
+    );
 
   const allQuakes = data?.features || [];
   const quakes = allQuakes.filter(
@@ -189,7 +219,64 @@ export default function EarthPage() {
               </button>
             </div>
           </div>
-          <EarthquakeMap key={mapFocused ? "focused" : "default"} earthquakes={quakes} height={mapFocused ? "calc(100vh - 8rem)" : "500px"} />
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-faint)]">
+              Layers
+            </span>
+            {EVENT_CATEGORIES.map((category) => {
+              const layer = EVENT_LAYERS[category];
+              const active = activeLayers.includes(category);
+              const count = layerQueries[EVENT_CATEGORIES.indexOf(category)]?.data
+                ?.events.length;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => toggleLayer(category)}
+                  aria-pressed={active}
+                  className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono uppercase tracking-wide transition-colors ${
+                    active
+                      ? "border-[var(--text-faint)] text-[var(--text)]"
+                      : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"
+                  }`}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{
+                      backgroundColor: layer.color,
+                      opacity: active ? 1 : 0.35,
+                    }}
+                  />
+                  {layer.label}
+                  {active && count !== undefined ? ` · ${count}` : ""}
+                  <span className="sr-only">{active ? " (shown)" : " (hidden)"}</span>
+                </button>
+              );
+            })}
+            {layersLoading && (
+              <span className="text-[10px] font-mono uppercase tracking-wide text-[var(--text-faint)]">
+                Loading…
+              </span>
+            )}
+            {failedLayer && (
+              <span className="text-[10px] text-[#e0483d]" role="status">
+                {failedLayer.error instanceof Error
+                  ? failedLayer.error.message
+                  : "A layer failed to load"}
+              </span>
+            )}
+          </div>
+          <p className="sr-only" role="status">
+            {activeLayers.length === 0
+              ? "No natural event layers shown."
+              : `Showing ${naturalEvents.length} events across ${activeLayers.length} layers.`}
+          </p>
+          <EarthquakeMap
+            key={mapFocused ? "focused" : "default"}
+            earthquakes={quakes}
+            naturalEvents={naturalEvents}
+            height={mapFocused ? "calc(100vh - 8rem)" : "500px"}
+          />
         </div>
 
         {/* Recent major events */}

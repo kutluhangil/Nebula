@@ -4,9 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Share2, Maximize2, ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { fetchJson } from "@/lib/api-client";
+import { useModal } from "@/hooks/use-modal";
 
 interface APODData {
   title: string;
@@ -20,6 +21,8 @@ interface APODData {
 
 export function APODCard() {
   const [fullscreen, setFullscreen] = useState(false);
+  const closeFullscreen = useCallback(() => setFullscreen(false), []);
+  const modalRef = useModal(fullscreen, closeFullscreen);
 
   const { data, isLoading, isError, error, refetch, isFetching } =
     useQuery<APODData>({
@@ -160,9 +163,17 @@ export function APODCard() {
       {fullscreen && (
         <div
           className="fixed inset-0 z-50 bg-[var(--surface)] backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setFullscreen(false)}
+          onClick={closeFullscreen}
         >
-          <div className="relative max-w-5xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={data.title}
+            tabIndex={-1}
+            className="relative max-w-5xl max-h-[90vh] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Image
               src={data.hdurl || data.url}
               alt={data.title}
@@ -172,7 +183,7 @@ export function APODCard() {
               unoptimized
             />
             <button
-              onClick={() => setFullscreen(false)}
+              onClick={closeFullscreen}
               className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-[var(--surface)] text-[var(--text-dim)] hover:text-[var(--text)] flex items-center justify-center"
               aria-label="Close fullscreen"
             >

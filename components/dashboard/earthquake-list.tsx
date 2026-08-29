@@ -3,11 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, X, MapPin, Clock, Waves, Bell } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { useNotifications } from "@/hooks/use-notifications";
 import { fetchJson } from "@/lib/api-client";
+import { useModal } from "@/hooks/use-modal";
 
 interface EarthquakeFeature {
   id: string;
@@ -45,6 +46,8 @@ function MagBadge({ mag }: { mag: number }) {
 
 export function EarthquakeList() {
   const [selected, setSelected] = useState<EarthquakeFeature | null>(null);
+  const closeDetail = useCallback(() => setSelected(null), []);
+  const modalRef = useModal(Boolean(selected), closeDetail);
   const { permission, requestPermission, sendNotification } = useNotifications();
   const notifiedIds = useRef<Set<string>>(new Set());
 
@@ -151,9 +154,14 @@ export function EarthquakeList() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--surface)] backdrop-blur-sm"
-            onClick={() => setSelected(null)}
+            onClick={closeDetail}
           >
             <motion.div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Magnitude ${selected.properties.mag.toFixed(1)} earthquake near ${selected.properties.place}`}
+              tabIndex={-1}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -173,7 +181,7 @@ export function EarthquakeList() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setSelected(null)}
+                  onClick={closeDetail}
                   className="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center text-[var(--text-faint)] hover:text-[var(--text-dim)]"
                   aria-label="Close modal"
                 >

@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { formatDistanceToNow } from "date-fns";
 import { magnitudeColor } from "@/lib/dataviz";
+import { EVENT_LAYERS, type NaturalEvent } from "@/lib/natural-events";
 
 interface EarthquakeFeature {
   id: string;
@@ -24,9 +25,11 @@ function getMagRadius(mag: number) {
 
 export default function EarthquakeMap({
   earthquakes,
+  naturalEvents = [],
   height = "500px",
 }: {
   earthquakes: EarthquakeFeature[];
+  naturalEvents?: NaturalEvent[];
   height?: string;
 }) {
   return (
@@ -87,6 +90,48 @@ export default function EarthquakeMap({
                   </p>
                   <p className="text-xs text-gray-500">
                     {lat.toFixed(3)}°, {lon.toFixed(3)}°
+                  </p>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+        {/* NASA EONET layers: wildfires, volcanoes, severe storms. */}
+        {naturalEvents.map((event) => {
+          const layer = EVENT_LAYERS[event.category];
+          return (
+            <CircleMarker
+              key={event.id}
+              center={[event.lat, event.lon]}
+              radius={6}
+              fillColor={layer.color}
+              color={layer.color}
+              weight={1}
+              opacity={0.9}
+              fillOpacity={0.55}
+            >
+              <Popup className="nebula-popup">
+                <div className="bg-gray-900 text-[var(--text)] p-3 rounded-lg min-w-[200px]">
+                  <div
+                    className="text-xs font-mono uppercase tracking-wider mb-1"
+                    style={{ color: layer.color }}
+                  >
+                    {layer.label}
+                  </div>
+                  <p className="text-sm text-gray-200 mb-1">{event.title}</p>
+                  {event.magnitude !== null && (
+                    <p className="text-xs text-gray-400">
+                      {event.magnitude.toLocaleString()} {event.magnitudeUnit}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    {formatDistanceToNow(new Date(event.date), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {event.lat.toFixed(3)}°, {event.lon.toFixed(3)}°
                   </p>
                 </div>
               </Popup>

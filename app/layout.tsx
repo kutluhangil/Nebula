@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import { Providers } from "@/components/providers";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
@@ -33,9 +34,19 @@ const ibmPlexMono = IBM_Plex_Mono({
 const themeScript = `(function(){try{var t=localStorage.getItem('nebula-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export const metadata: Metadata = {
-  title: "NEBULA — Planet Intelligence Dashboard",
-  description:
-    "A premium, AI-powered science dashboard combining live space exploration, astronomy, Earth events, and scientific discoveries into one immersive experience.",
+  // Resolves every relative metadata URL (Open Graph image, canonical) against
+  // the real origin instead of emitting relative paths crawlers cannot follow.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "NEBULA — Planet Intelligence Dashboard",
+    template: "%s · NEBULA",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
   keywords: [
     "space",
     "astronomy",
@@ -48,24 +59,39 @@ export const metadata: Metadata = {
     "science",
     "dashboard",
   ],
-  authors: [{ name: "NEBULA" }],
+  authors: [{ name: SITE_NAME }],
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     title: "NEBULA — Planet Intelligence Dashboard",
-    description:
-      "Live space exploration, astronomy, Earth events & AI-generated daily planet reports.",
+    description: SITE_DESCRIPTION,
     type: "website",
-    siteName: "NEBULA",
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    locale: "en",
   },
   twitter: {
     card: "summary_large_image",
     title: "NEBULA — Planet Intelligence Dashboard",
-    description:
-      "Live space exploration, astronomy, Earth events & AI-generated daily planet reports.",
+    description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
     follow: true,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#05070f",
+  colorScheme: "dark light",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

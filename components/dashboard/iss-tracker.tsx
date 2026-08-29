@@ -3,14 +3,50 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { MapPin, Gauge, ArrowUp } from "lucide-react";
+import { MapPin, Gauge, ArrowUp, Eye, Sun } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
+import { useLocation } from "@/hooks/use-location";
 
 interface ISSPosition {
   iss_position: { latitude: string; longitude: string };
   timestamp: number;
   altitude?: number;
   velocity?: number;
+  visibility?: string;
+  footprint?: number;
+}
+
+interface ISSPass {
+  start: string;
+  peak: string;
+  end: string;
+  durationSeconds: number;
+  peakElevation: number;
+  startAzimuth: number;
+  endAzimuth: number;
+  visible: boolean;
+}
+
+interface ISSPasses {
+  passes: ISSPass[];
+  nextVisible: ISSPass | null;
+}
+
+/**
+ * wheretheiss.at reports three lighting states: the station in daylight, in
+ * Earth's shadow, or sunlit while the ground below is dark — the last being
+ * the only one where it can be seen from the surface.
+ */
+const VISIBILITY_LABELS: Record<string, string> = {
+  daylight: "Sunlit",
+  eclipsed: "Eclipsed",
+  visible: "Visible now",
+};
+
+/** Compass point for a bearing, e.g. 305 -> "NW". */
+function compass(degrees: number): string {
+  const points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  return points[Math.round(degrees / 45) % 8];
 }
 
 function ISSGlobe({
@@ -132,10 +168,22 @@ function ISSGlobe({
 }
 
 export function ISSTracker() {
+  const { coords, status, request } = useLocation();
+
   const { data, isLoading } = useQuery<ISSPosition>({
     queryKey: ["iss"],
     queryFn: () => fetchJson("/api/iss"),
     refetchInterval: 5000,
+  });
+
+  // Pass prediction is observer-specific, so it only runs once the viewer has
+  // shared a location.
+  const { data: passData } = useQuery<ISSPasses>({
+    queryKey: ["iss-passes", coords?.lat ?? null, coords?.lon ?? null],
+    queryFn: () =>
+      fetchJson(`/api/iss/passes?lat=${coords!.lat}&lon=${coords!.lon}`),
+    enabled: Boolean(coords),
+    staleTime: 1000 * 60 * 30,
   });
 
   const lat = parseFloat(data?.iss_position?.latitude || "0");
@@ -182,6 +230,68 @@ export function ISSTracker() {
           }
           color="text-[var(--text-dim)]"
         />
+        <StatItem
+          icon={Sun}
+          label="Sunlight"
+          value={
+            data?.visibility
+              ? VISIBILITY_LABELS[data.visibility] ?? data.visibility
+              : "—"
+          }
+          color="text-[var(--text-dim)]"
+        />
+        <StatItem
+          icon={Eye}
+          label="Footprint"
+          value={data?.footprint ? `${data.footprint.toLocaleString()} km` : "—"}
+          color="text-[var(--text-dim)]"
+        />
+      </div>
+
+      {/* Next visible pass — requires the viewer's location. */}
+      <div className="mt-3 pt-3 border-t border-[var(--border)]">
+        {!coords ? (
+          <button
+            onClick={request}
+            disabled={status === "prompting"}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--text-faint)] hover:text-[var(--text-dim)] transition-colors disabled:opacity-50"
+          >
+            <MapPin className="w-3 h-3" />
+            {status === "prompting"
+              ? "Locating…"
+              : status === "denied"
+              ? "Location denied — pass times unavailable"
+              : "Use my location for next visible pass"}
+          </button>
+        ) : passData?.nextVisible ? (
+          <div className="text-xs">
+            <div className="flex items-center gap-1.5 text-[var(--text-faint)] mb-1">
+              <Eye className="w-3 h-3" />
+              Next visible pass
+            </div>
+            <div className="text-[var(--text)] font-mono">
+              {new Date(passData.nextVisible.start).toLocaleString([], {
+                weekday: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+            <div className="text-[var(--text-faint)] mt-0.5">
+              {Math.round(passData.nextVisible.durationSeconds / 60)} min ·
+              peaks {passData.nextVisible.peakElevation}° ·{" "}
+              {compass(passData.nextVisible.startAzimuth)} to{" "}
+              {compass(passData.nextVisible.endAzimuth)}
+            </div>
+          </div>
+        ) : passData ? (
+          <p className="text-xs text-[var(--text-faint)] text-center">
+            No visible pass in the next 48 hours.
+          </p>
+        ) : (
+          <p className="text-xs text-[var(--text-faint)] text-center">
+            Computing passes…
+          </p>
+        )}
       </div>
 
       <div className="mt-3 pt-3 border-t border-[var(--border)] text-xs text-[var(--text-faint)] text-center font-mono">

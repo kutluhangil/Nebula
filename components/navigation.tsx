@@ -159,6 +159,15 @@ export function Navigation() {
 
           {/* Mobile controls */}
           <div className="flex items-center gap-2 md:hidden">
+            {/* The command palette was keyboard-only on mobile, where there is
+                no way to press Cmd+K. */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="w-9 h-9 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
+              aria-label="Search"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <ThemeToggle />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}

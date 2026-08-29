@@ -42,3 +42,7 @@ next-env.d.ts
 
 # agent rules
 /.agents/
+node_modules/.cache
+test-results/
+playwright-report/
+.playwright-mcp/
