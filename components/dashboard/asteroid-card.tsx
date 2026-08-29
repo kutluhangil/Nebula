@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { AlertTriangle, Shield } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
+import { fetchJson } from "@/lib/api-client";
 
 interface Asteroid {
   id: string;
@@ -24,13 +25,12 @@ interface Asteroid {
 
 interface SpaceData {
   asteroids: Asteroid[];
-  solarFlares: unknown[];
 }
 
 export function AsteroidCard() {
   const { data, isLoading } = useQuery<SpaceData>({
     queryKey: ["space"],
-    queryFn: () => fetch("/api/space").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/space"),
     staleTime: 1000 * 60 * 60,
   });
 

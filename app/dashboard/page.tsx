@@ -22,11 +22,17 @@ import { AIReport } from "@/components/dashboard/ai-report";
 import { WeatherWidget } from "@/components/dashboard/weather-widget";
 import { LiveBriefing } from "@/components/dashboard/live-briefing";
 import { WatchlistCard } from "@/components/dashboard/watchlist-card";
+import { fetchJson } from "@/lib/api-client";
 
 export default function DashboardPage() {
   const { data: earthquakeData } = useQuery({
     queryKey: ["earthquakes"],
-    queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
+    queryFn: () => fetchJson<{
+      features: {
+        id: string;
+        properties: { mag: number; place: string; tsunami: number };
+      }[];
+    }>("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
   });
 

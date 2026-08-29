@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
+import { fetchJson } from "@/lib/api-client";
 
 interface Launch {
   id: string;
@@ -79,7 +80,7 @@ function Countdown({ targetDate }: { targetDate: string }) {
 export default function LaunchesPage() {
   const { data, isLoading } = useQuery<SpaceXData>({
     queryKey: ["spacex"],
-    queryFn: () => fetch("/api/spacex").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/spacex"),
     staleTime: 1000 * 60 * 30,
   });
 

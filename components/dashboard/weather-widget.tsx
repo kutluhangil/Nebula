@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Cloud, Sun, Sunrise, Sunset, Droplets, Wind, Moon } from "lucide-react";
 import { format } from "date-fns";
+import { fetchJson } from "@/lib/api-client";
 
 interface WeatherData {
   current: {
@@ -22,7 +23,7 @@ interface WeatherData {
 export function WeatherWidget() {
   const { data, isLoading } = useQuery<WeatherData>({
     queryKey: ["weather"],
-    queryFn: () => fetch("/api/weather").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/weather"),
     refetchInterval: 1000 * 60 * 30, // 30 mins
   });
 

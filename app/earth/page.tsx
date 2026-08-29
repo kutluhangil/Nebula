@@ -10,6 +10,7 @@ import { MagnitudeChart } from "@/components/earth/magnitude-chart";
 import { DepthChart } from "@/components/earth/depth-chart";
 import { MAGNITUDE_BANDS } from "@/lib/dataviz";
 import { useWatchlist, type EarthquakeThreshold } from "@/hooks/use-watchlist";
+import { fetchJson } from "@/lib/api-client";
 
 // Leaflet must be dynamically imported (no SSR)
 const EarthquakeMap = dynamic(
@@ -40,7 +41,7 @@ export default function EarthPage() {
   } = useWatchlist();
   const { data, isLoading } = useQuery<{ features: EarthquakeFeature[] }>({
     queryKey: ["earthquakes"],
-    queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
   });
 

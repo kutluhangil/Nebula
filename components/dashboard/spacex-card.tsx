@@ -6,6 +6,7 @@ import { Rocket, Calendar, CheckCircle, XCircle, Clock } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState, useEffect } from "react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
+import { fetchJson } from "@/lib/api-client";
 
 interface Launch {
   id: string;
@@ -57,7 +58,7 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
 export function SpaceXCard() {
   const { data, isLoading } = useQuery<SpaceXData>({
     queryKey: ["spacex"],
-    queryFn: () => fetch("/api/spacex").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/spacex"),
     staleTime: 1000 * 60 * 30,
   });
 

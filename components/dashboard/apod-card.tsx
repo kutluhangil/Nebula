@@ -2,10 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Share2, Maximize2, ExternalLink } from "lucide-react";
+import { Share2, Maximize2, ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
+import { fetchJson } from "@/lib/api-client";
 
 interface APODData {
   title: string;
@@ -20,11 +21,12 @@ interface APODData {
 export function APODCard() {
   const [fullscreen, setFullscreen] = useState(false);
 
-  const { data, isLoading } = useQuery<APODData>({
-    queryKey: ["apod"],
-    queryFn: () => fetch("/api/apod").then((r) => r.json()),
-    staleTime: 1000 * 60 * 60,
-  });
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    useQuery<APODData>({
+      queryKey: ["apod"],
+      queryFn: () => fetchJson<APODData>("/api/apod"),
+      staleTime: 1000 * 60 * 60,
+    });
 
   if (isLoading) {
     return (
@@ -32,10 +34,35 @@ export function APODCard() {
     );
   }
 
-  if (!data || data.media_type === "video") {
+  // NASA's APOD endpoint rate-limits DEMO_KEY and has intermittent outages, so
+  // a failed fetch is an expected state rather than an exceptional one.
+  if (isError || !data?.url) {
+    return (
+      <div className="glass-panel p-6 flex flex-col items-center justify-center gap-3 h-80 text-center">
+        <ImageOff className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          NASA&apos;s Astronomy Picture of the Day is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-sm">
+          {error instanceof Error
+            ? error.message
+            : "The APOD service returned no image for today."}
+        </p>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors disabled:opacity-50"
+        >
+          {isFetching ? "Retrying…" : "Retry"}
+        </button>
+      </div>
+    );
+  }
+
+  if (data.media_type === "video") {
     return (
       <div className="glass-panel p-6 flex items-center justify-center h-80 text-[var(--text-faint)]">
-        <p>Today&apos;s APOD is a video. <a href={data?.url} target="_blank" rel="noopener noreferrer" className="text-[var(--text-dim)] hover:underline">Watch it here</a></p>
+        <p>Today&apos;s APOD is a video. <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-[var(--text-dim)] hover:underline">Watch it here</a></p>
       </div>
     );
   }

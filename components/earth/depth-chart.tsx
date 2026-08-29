@@ -61,7 +61,7 @@ function TooltipBox({
  * how deep it struck against how strong it was. Points carry the shared
  * severity colour so they map onto the same scale as the bars and the seismic
  * map. This plots the events we have, not a rate, so it is unaffected by the
- * feed's strongest-first cap.
+ * feed's 100-event cap.
  */
 export function DepthChart({ earthquakes }: { earthquakes: Quake[] }) {
   const data = useMemo<Point[]>(

@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Mail, ArrowUpRight, Activity } from "lucide-react";
+import { Globe, ArrowUpRight, Activity } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SpotlightCard } from "./ui/spotlight-card";
@@ -66,19 +66,11 @@ export function Footer() {
               launches, earthquakes and solar weather — read from the sources that measure them.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://github.com/LaunchTogether/Nebula" target="_blank" rel="noreferrer" aria-label="GitHub" className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all hover:scale-105">
+              <a href="https://github.com/kutluhangil/Nebula" target="_blank" rel="noreferrer" aria-label="GitHub" className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all hover:scale-105">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
                   <path d="M9 18c-4.51 2-5-2-7-2" />
                 </svg>
-              </a>
-              <a href="#" aria-label="X" className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all hover:scale-105">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
-                </svg>
-              </a>
-              <a href="#" aria-label="Email" className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all hover:scale-105">
-                <Mail className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -116,7 +108,14 @@ export function Footer() {
                   </div>
                 </li>
                 <li className="flex items-center justify-between group">
-                  <a href="https://github.com/r-spacex/SpaceX-API" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">SpaceX API <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
+                  <a href="https://thespacedevs.com/llapi" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">Launch Library 2 <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                  </div>
+                </li>
+                <li className="flex items-center justify-between group">
+                  <a href="https://www.swpc.noaa.gov/" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">NOAA Space Weather <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
@@ -126,11 +125,11 @@ export function Footer() {
             </SpotlightCard>
 
             <div>
-              <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider">Company</h4>
+              <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider">Project</h4>
               <ul className="space-y-4">
-                <li><Link href="#" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light">About</Link></li>
-                <li><Link href="#" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light">Mission</Link></li>
-                <li><Link href="#" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light">Contact</Link></li>
+                <li><a href="https://github.com/kutluhangil/Nebula#readme" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light">About</a></li>
+                <li><a href="https://github.com/kutluhangil/Nebula" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light">Source code</a></li>
+                <li><a href="https://github.com/kutluhangil/Nebula/issues" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light">Report an issue</a></li>
               </ul>
             </div>
           </div>
@@ -144,11 +143,9 @@ export function Footer() {
             </p>
           </div>
           <FooterClock />
-          <div className="flex items-center gap-8 text-sm text-[var(--text-faint)] font-light">
-            <Link href="#" className="hover:text-[var(--text)] transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-[var(--text)] transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-[var(--text)] transition-colors">Cookies</Link>
-          </div>
+          <p className="text-sm text-[var(--text-faint)] font-light text-center md:text-right">
+            No accounts, no tracking — favorites stay in your browser.
+          </p>
         </div>
       </div>
     </footer>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MapPin, Gauge, ArrowUp } from "lucide-react";
+import { fetchJson } from "@/lib/api-client";
 
 interface ISSPosition {
   iss_position: { latitude: string; longitude: string };
@@ -133,7 +134,7 @@ function ISSGlobe({
 export function ISSTracker() {
   const { data, isLoading } = useQuery<ISSPosition>({
     queryKey: ["iss"],
-    queryFn: () => fetch("/api/iss").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/iss"),
     refetchInterval: 5000,
   });
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "nebula-theme";
+const CHANGE_EVENT = "nebula-theme-change";
 
 function readTheme(): Theme {
   if (typeof document === "undefined") return "dark";
@@ -13,16 +14,23 @@ function readTheme(): Theme {
 }
 
 /**
- * Reads the current theme from the <html data-theme> attribute (set by the
- * no-flash inline script in the document head) and lets callers toggle it.
- * Persists the choice to localStorage so it survives reloads.
+ * The theme lives on the <html data-theme> attribute, written by the no-flash
+ * inline script in the document head before React hydrates. That makes it
+ * external state, so it is read through useSyncExternalStore rather than
+ * mirrored into component state via an effect.
  */
-export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>("dark");
+function subscribe(onChange: () => void) {
+  window.addEventListener(CHANGE_EVENT, onChange);
+  return () => window.removeEventListener(CHANGE_EVENT, onChange);
+}
 
-  useEffect(() => {
-    setThemeState(readTheme());
-  }, []);
+/** The server has no document, and the head script defaults to dark. */
+function getServerSnapshot(): Theme {
+  return "dark";
+}
+
+export function useTheme() {
+  const theme = useSyncExternalStore(subscribe, readTheme, getServerSnapshot);
 
   const setTheme = useCallback((next: Theme) => {
     document.documentElement.setAttribute("data-theme", next);
@@ -32,8 +40,7 @@ export function useTheme() {
       // localStorage unavailable (private mode / disabled) — theme still
       // applies for this session via the data-theme attribute.
     }
-    setThemeState(next);
-    window.dispatchEvent(new CustomEvent("nebula-theme-change", { detail: next }));
+    window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: next }));
   }, []);
 
   const toggleTheme = useCallback(() => {

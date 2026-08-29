@@ -3,15 +3,15 @@
 import { Star } from "lucide-react";
 import { useFavorites, FavoriteItem } from "@/hooks/use-favorites";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export function FavoriteButton({ item }: { item: FavoriteItem }) {
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => setMounted(true), []);
+  // Favorites are restored from localStorage, so the button cannot render its
+  // real state until after hydration.
+  const hydrated = useHydrated();
 
-  if (!mounted) return null;
+  if (!hydrated) return null;
 
   const active = isFavorite(item.id);
 

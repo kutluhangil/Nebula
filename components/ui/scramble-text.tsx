@@ -20,7 +20,12 @@ export function ScrambleText({ text, className = "", duration = 800 }: ScrambleT
     let animationFrame: number;
 
     const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
+      if (!startTime) {
+        startTime = timestamp;
+        // Restarting for a new `text`: flagged here rather than in the effect
+        // body so the state update stays out of the render pass.
+        setIsScrambling(true);
+      }
       const progress = timestamp - startTime;
       const percentage = Math.min(progress / duration, 1);
 
@@ -44,7 +49,6 @@ export function ScrambleText({ text, className = "", duration = 800 }: ScrambleT
       }
     };
 
-    setIsScrambling(true);
     animationFrame = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(animationFrame);

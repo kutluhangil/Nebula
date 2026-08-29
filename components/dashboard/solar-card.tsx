@@ -1,12 +1,22 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Zap, Sun, Activity } from "lucide-react";
 import { kpColor } from "@/lib/dataviz";
+import { fetchJson } from "@/lib/api-client";
 
-// NOAA data is public but has CORS issues from browser, so we use simulated live-looking data
-// In production, add a proper /api/solar route with NOAA SWPC data
 const KP_LEVELS = ["Quiet", "Quiet", "Unsettled", "Active", "Minor Storm", "Moderate Storm", "Strong Storm", "Severe Storm", "Extreme Storm"];
+
+interface SolarData {
+  kpIndex: number;
+  observedAt: string;
+  auroraProbability: number;
+  auroraObservedAt: string;
+  geoStorms: number;
+  solarFlares: number;
+  source: string;
+}
 
 function KPGauge({ value }: { value: number }) {
   const percentage = (value / 9) * 100;
@@ -56,11 +66,41 @@ function KPGauge({ value }: { value: number }) {
 }
 
 export function SolarCard() {
-  // Simulated data — replace with real NOAA API in /api/solar route
-  const kpIndex = 2;
-  const auroraProb = 15;
-  const solarFlares = 0;
-  const geoStorms = 0;
+  const { data, isLoading, isError, error, refetch } = useQuery<SolarData>({
+    queryKey: ["solar"],
+    queryFn: () => fetchJson<SolarData>("/api/solar"),
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 5,
+  });
+
+  if (isLoading) {
+    return <div className="glass-panel h-80 skeleton" aria-busy="true" />;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="glass-panel p-5 flex flex-col items-center justify-center gap-3 h-80 text-center">
+        <Zap className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          NOAA space weather is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-xs">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const kpIndex = data.kpIndex;
+  const auroraProb = data.auroraProbability;
+  const solarFlares = data.solarFlares;
+  const geoStorms = data.geoStorms;
 
   return (
     <motion.div
@@ -122,7 +162,7 @@ export function SolarCard() {
       </div>
 
       <div className="text-[10px] text-[var(--text-faint)] text-center">
-        Source: NOAA Space Weather Prediction Center
+        Source: {data.source} · Kp observed {data.observedAt.replace("T", " ")} UTC
       </div>
     </motion.div>
   );

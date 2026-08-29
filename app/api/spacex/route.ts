@@ -5,6 +5,11 @@ import { NextResponse } from "next/server";
 // by launch service provider id 121 (SpaceX) and map results to the shape the
 // UI already consumes.
 
+interface LL2Url {
+  priority?: number;
+  url: string;
+}
+
 interface LL2Launch {
   id: string;
   name: string;
@@ -14,6 +19,8 @@ interface LL2Launch {
   image?: string | null;
   rocket?: { configuration?: { name?: string } };
   pad?: { name?: string };
+  vidURLs?: LL2Url[] | null;
+  infoURLs?: LL2Url[] | null;
 }
 
 interface MappedLaunch {
@@ -22,9 +29,22 @@ interface MappedLaunch {
   date_utc: string;
   success: boolean | null;
   details: string | null;
-  links: { patch: { small: string | null } };
+  links: {
+    patch: { small: string | null; large: string | null };
+    webcast: string | null;
+    article: string | null;
+  };
   rocket: string;
   launchpad: string;
+}
+
+/** LL2 returns several URLs per launch, ranked by a `priority` field. */
+function topUrl(urls: LL2Url[] | null | undefined): string | null {
+  if (!urls?.length) return null;
+  const ranked = [...urls].sort(
+    (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+  );
+  return ranked[0]?.url ?? null;
 }
 
 function mapLaunch(l: LL2Launch, upcoming: boolean): MappedLaunch {
@@ -41,7 +61,12 @@ function mapLaunch(l: LL2Launch, upcoming: boolean): MappedLaunch {
       ? false
       : null,
     details: l.mission?.description ?? null,
-    links: { patch: { small: l.image ?? null } },
+    // LL2 serves a single mission image; the UI renders it at two sizes.
+    links: {
+      patch: { small: l.image ?? null, large: l.image ?? null },
+      webcast: topUrl(l.vidURLs),
+      article: topUrl(l.infoURLs),
+    },
     rocket: l.rocket?.configuration?.name ?? "Falcon 9",
     launchpad: l.pad?.name ?? "",
   };
@@ -51,10 +76,10 @@ export async function GET() {
   try {
     const base = "https://ll.thespacedevs.com/2.2.0/launch";
     const [prevRes, upRes] = await Promise.all([
-      fetch(`${base}/previous/?limit=1&lsp__id=121`, {
+      fetch(`${base}/previous/?limit=1&lsp__id=121&mode=detailed`, {
         next: { revalidate: 3600 },
       }),
-      fetch(`${base}/upcoming/?limit=6&lsp__id=121`, {
+      fetch(`${base}/upcoming/?limit=6&lsp__id=121&mode=detailed`, {
         next: { revalidate: 3600 },
       }),
     ]);

@@ -10,6 +10,7 @@ import {
   Zap,
   Globe,
 } from "lucide-react";
+import { fetchJson } from "@/lib/api-client";
 
 interface StatsBarProps {
   earthquakeCount: number;
@@ -18,14 +19,21 @@ interface StatsBarProps {
 export function StatsBar({ earthquakeCount }: StatsBarProps) {
   const { data: spacex } = useQuery({
     queryKey: ["spacex"],
-    queryFn: () => fetch("/api/spacex").then((r) => r.json()),
+    queryFn: () => fetchJson<{ upcoming?: unknown[] }>("/api/spacex"),
     staleTime: 1000 * 60 * 30,
   });
 
   const { data: spaceData } = useQuery({
     queryKey: ["space"],
-    queryFn: () => fetch("/api/space").then((r) => r.json()),
+    queryFn: () => fetchJson<{ asteroids?: { is_potentially_hazardous_asteroid: boolean }[] }>("/api/space"),
     staleTime: 1000 * 60 * 60,
+  });
+
+  const { data: solar } = useQuery({
+    queryKey: ["solar"],
+    queryFn: () =>
+      fetchJson<{ kpIndex: number; auroraProbability: number }>("/api/solar"),
+    staleTime: 1000 * 60 * 5,
   });
 
   const upcomingLaunches = spacex?.upcoming?.length || 0;
@@ -70,15 +78,15 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
     {
       icon: Zap,
       label: "Solar Activity",
-      value: "KP 2",
+      value: solar ? `KP ${solar.kpIndex}` : "—",
       color: "text-[var(--text-dim)]",
       bg: "bg-yellow-500/5",
       border: "border-yellow-500/10",
     },
     {
       icon: Globe,
-      label: "ISS Orbit",
-      value: "#5,421",
+      label: "Aurora Probability",
+      value: solar ? `${solar.auroraProbability}%` : "—",
       color: "text-cyan-400",
       bg: "bg-cyan-500/5",
       border: "border-cyan-500/10",

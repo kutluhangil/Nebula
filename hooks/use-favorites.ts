@@ -10,7 +10,7 @@ export interface FavoriteItem {
   subtitle: string;
   imageUrl?: string;
   date: string;
-  data?: any; // The raw object data
+  data?: unknown; // The raw source record the favorite was created from
 }
 
 interface FavoritesState {

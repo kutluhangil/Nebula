@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Satellite, Star, Globe, Zap, AlertTriangle, Rocket } from "lucide-react";
+import { Satellite, Star, Zap, AlertTriangle, Rocket } from "lucide-react";
 import { APODCard } from "@/components/dashboard/apod-card";
 import { ISSTracker } from "@/components/dashboard/iss-tracker";
 import { AsteroidCard } from "@/components/dashboard/asteroid-card";

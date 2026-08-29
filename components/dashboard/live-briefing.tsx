@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowUpRight, Radio, Rocket, Satellite } from "lucide-react";
+import { fetchJson } from "@/lib/api-client";
 
 interface Earthquake {
   id: string;
@@ -27,22 +28,27 @@ function timeLabel(updatedAt: number) {
 export function LiveBriefing() {
   const earthquakes = useQuery<{ features: Earthquake[] }>({
     queryKey: ["earthquakes"],
-    queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
   });
   const iss = useQuery<IssData>({
     queryKey: ["iss"],
-    queryFn: () => fetch("/api/iss").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/iss"),
     refetchInterval: 5000,
   });
   const launches = useQuery<{ upcoming: Launch[] }>({
     queryKey: ["spacex"],
-    queryFn: () => fetch("/api/spacex").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/spacex"),
     staleTime: 1000 * 60 * 30,
   });
 
   const quakeList = earthquakes.data?.features ?? [];
-  const largest = quakeList[0];
+  // The feed is ordered by time, so the strongest event has to be searched for.
+  const largest = quakeList.reduce<(typeof quakeList)[number] | undefined>(
+    (max, quake) =>
+      !max || quake.properties.mag > max.properties.mag ? quake : max,
+    undefined
+  );
   const majorCount = quakeList.filter((quake) => quake.properties.mag >= 6).length;
   const nextLaunch = launches.data?.upcoming?.[0];
   const lat = Number(iss.data?.iss_position.latitude);

@@ -58,7 +58,7 @@ export function NewsGrid() {
   return (
     <div className="space-y-12">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data.pages.map((page, i) => (
+        {data.pages.map((page) => (
           page.results.map((article, j) => (
             <NewsCard 
               key={article.id} 

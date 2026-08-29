@@ -6,12 +6,10 @@ import {
   Star,
   Activity,
   Rocket,
-  Zap,
-  Satellite,
-  AlertTriangle,
   Clock,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
+import { fetchJson } from "@/lib/api-client";
 
 interface TimelineEvent {
   id: string;
@@ -32,12 +30,12 @@ export default function TimelinePage() {
     }>;
   }>({
     queryKey: ["earthquakes"],
-    queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/earthquakes"),
   });
 
   const { data: apodData } = useQuery<{ title: string; date: string }>({
     queryKey: ["apod"],
-    queryFn: () => fetch("/api/apod").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/apod"),
   });
 
   const { data: spacexData } = useQuery<{
@@ -45,7 +43,7 @@ export default function TimelinePage() {
     upcoming: Array<{ id: string; name: string; date_utc: string }>;
   }>({
     queryKey: ["spacex"],
-    queryFn: () => fetch("/api/spacex").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/spacex"),
   });
 
   const events: TimelineEvent[] = [];

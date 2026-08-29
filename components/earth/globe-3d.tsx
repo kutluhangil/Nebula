@@ -6,6 +6,7 @@ import { Html, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { useQuery } from "@tanstack/react-query";
 import { magnitudeColor } from "@/lib/dataviz";
+import { fetchJson } from "@/lib/api-client";
 
 /* ---------------------------------------------------------------------------
    A realistic 3D Earth: textured mesh with a cloud layer, day/night lighting,
@@ -26,9 +27,25 @@ function latLonToVec3(lat: number, lon: number, r = R): THREE.Vector3 {
   );
 }
 
-/** Generates thousands of random points for the satellite swarm */
+/**
+ * Deterministic PRNG. The swarm only needs to *look* random, and a fixed seed
+ * keeps the generated buffer pure so it renders identically on server and
+ * client instead of reshuffling on every render.
+ */
+function mulberry32(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Generates thousands of points for the satellite swarm */
 function useSatellitePoints() {
   return useMemo(() => {
+    const random = mulberry32(0x5eed);
     const count = 3500;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
@@ -44,9 +61,9 @@ function useSatellitePoints() {
     for (let i = 0; i < count; i++) {
       // Random position on sphere slightly larger than Earth
       // R=1, Satellites orbit between R+0.05 and R+0.25
-      const r = R + 0.05 + Math.random() * 0.20; 
-      const theta = 2 * Math.PI * Math.random();
-      const phi = Math.acos(2 * Math.random() - 1);
+      const r = R + 0.05 + random() * 0.20;
+      const theta = 2 * Math.PI * random();
+      const phi = Math.acos(2 * random() - 1);
       
       const x = r * Math.sin(phi) * Math.cos(theta);
       const y = r * Math.sin(phi) * Math.sin(theta);
@@ -57,7 +74,7 @@ function useSatellitePoints() {
       positions[i * 3 + 2] = z;
 
       // Heavy bias towards cyan/blue/white, rarely red
-      const rand = Math.random();
+      const rand = random();
       let c;
       if (rand < 0.4) c = colorOptions[0]; // cyan
       else if (rand < 0.8) c = colorOptions[1]; // white
@@ -239,13 +256,13 @@ function Globe({ reduce }: { reduce: boolean }) {
     iss_position: { latitude: string; longitude: string };
   }>({
     queryKey: ["iss"],
-    queryFn: () => fetch("/api/iss").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/iss"),
     refetchInterval: 5000,
   });
 
   const { data: quakeData } = useQuery<{ features: Quake[] }>({
     queryKey: ["earthquakes"],
-    queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/earthquakes"),
     staleTime: 1000 * 60 * 10,
   });
 

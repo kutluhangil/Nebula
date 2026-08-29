@@ -2,11 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Maximize2, X, MapPin, Clock, Waves, Bell } from "lucide-react";
+import { Maximize2, X, MapPin, Clock, Waves, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { useNotifications } from "@/hooks/use-notifications";
+import { fetchJson } from "@/lib/api-client";
 
 interface EarthquakeFeature {
   id: string;
@@ -49,7 +50,7 @@ export function EarthquakeList() {
 
   const { data, isLoading } = useQuery<{ features: EarthquakeFeature[] }>({
     queryKey: ["earthquakes"],
-    queryFn: () => fetch("/api/earthquakes").then((r) => r.json()),
+    queryFn: () => fetchJson("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
   });
 
@@ -102,7 +103,6 @@ export function EarthquakeList() {
         </div>
         <div className="divide-y divide-[var(--border)]">
           {quakes.map((quake, i) => {
-            const colors = getMagColor(quake.properties.mag);
             return (
               <motion.button
                 key={quake.id}
