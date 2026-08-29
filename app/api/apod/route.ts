@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 export async function GET() {
   const apiKey = process.env.NASA_API_KEY || "DEMO_KEY";
@@ -7,7 +8,7 @@ export async function GET() {
     const today = new Date().toISOString().split("T")[0];
     const res = await fetch(
       `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${today}`,
-      { next: { revalidate: 3600 } }
+      withTimeout({ next: { revalidate: 3600 } })
     );
 
     if (!res.ok) {
@@ -32,8 +33,7 @@ export async function GET() {
     console.error("APOD API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to fetch APOD",
+        error: upstreamError("NASA APOD", error),
       },
       { status: 502 }
     );

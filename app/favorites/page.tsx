@@ -2,13 +2,48 @@
 
 import { useFavorites } from "@/hooks/use-favorites";
 import { motion } from "framer-motion";
-import { Star, Rocket, Activity, Image as ImageIcon, AlertTriangle } from "lucide-react";
+import { Star, Rocket, Activity, Image as ImageIcon, AlertTriangle, Download, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import { buildFavoritesFile, parseFavoritesFile } from "@/lib/favorites-file";
 import Image from "next/image";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { formatDistanceToNow } from "date-fns";
 
 export default function FavoritesPage() {
-  const { favorites } = useFavorites();
+  const { favorites, importFavorites } = useFavorites();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+
+  const exportFavorites = () => {
+    const blob = new Blob(
+      [JSON.stringify(buildFavoritesFile(favorites), null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `nebula-favorites-${new Date().toISOString().split("T")[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onImportFile = async (file: File) => {
+    try {
+      const added = importFavorites(parseFavoritesFile(await file.text()));
+      setNotice({
+        kind: "ok",
+        text:
+          added === 0
+            ? "Every item in that file was already saved."
+            : `Imported ${added} item${added === 1 ? "" : "s"}.`,
+      });
+    } catch (error) {
+      setNotice({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Import failed.",
+      });
+    }
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -37,8 +72,50 @@ export default function FavoritesPage() {
           <h1 className="text-2xl font-bold text-[var(--text)]">Your Favorites</h1>
         </div>
         <p className="text-[var(--text-dim)]">
-          Saved space events, imagery, and alerts.
+          Saved space events, imagery, and alerts. Stored in this browser only —
+          export a copy to move them to another device.
         </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={exportFavorites}
+            disabled={favorites.length === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-dim)] transition-colors hover:text-[var(--text)] disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-dim)] transition-colors hover:text-[var(--text)]"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            aria-label="Import favorites file"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void onImportFile(file);
+              // Allow re-selecting the same file after a failed import.
+              event.target.value = "";
+            }}
+          />
+          {notice && (
+            <span
+              role="status"
+              className={`text-xs ${notice.kind === "ok" ? "text-emerald-400" : "text-[#e0483d]"}`}
+            >
+              {notice.text}
+            </span>
+          )}
+        </div>
       </motion.div>
 
       {favorites.length === 0 ? (

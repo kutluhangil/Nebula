@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // This route can spend money once OPENAI_API_KEY is set, so it caps how often a
 // single caller may reach the model. The counter lives in instance memory: it
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      ...withTimeout(),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -132,10 +134,7 @@ export async function POST(request: Request) {
     console.error("AI Report Error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate AI report",
+        error: upstreamError("OpenAI", error),
       },
       { status: 502 }
     );

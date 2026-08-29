@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // Real space weather from NOAA SWPC. These endpoints are public, key-free and
 // CORS-restricted, which is why they are read server-side here rather than from
@@ -34,7 +35,7 @@ interface XrayFlare {
 }
 
 async function getJson<T>(url: string, revalidate: number): Promise<T> {
-  const res = await fetch(url, { next: { revalidate } });
+  const res = await fetch(url, withTimeout({ next: { revalidate } }));
   if (!res.ok) {
     throw new Error(`NOAA SWPC request to ${url} failed with ${res.status}`);
   }
@@ -121,10 +122,7 @@ export async function GET() {
     console.error("Solar API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch NOAA space weather data",
+        error: upstreamError("NOAA SWPC", error),
       },
       { status: 502 }
     );

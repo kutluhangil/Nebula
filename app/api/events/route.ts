@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // NASA EONET aggregates natural event feeds (wildfire incident reporting,
 // volcanic activity, storm tracking) into one key-free API. It backs the
@@ -101,7 +102,7 @@ export async function GET(request: Request) {
   try {
     const res = await fetch(
       `${EONET_URL}?category=${category}&status=open&limit=100`,
-      { next: { revalidate: 1800 } }
+      withTimeout({ next: { revalidate: 1800 } })
     );
 
     if (!res.ok) {
@@ -127,10 +128,7 @@ export async function GET(request: Request) {
     console.error("EONET API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch natural events",
+        error: upstreamError("NASA EONET", error),
       },
       { status: 502 }
     );

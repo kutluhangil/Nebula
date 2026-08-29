@@ -18,6 +18,8 @@ interface FavoritesState {
   addFavorite: (item: FavoriteItem) => void;
   removeFavorite: (id: string) => void;
   isFavorite: (id: string) => boolean;
+  /** Merges imported items in, keeping existing ones. Returns how many were new. */
+  importFavorites: (items: FavoriteItem[]) => number;
 }
 
 export const useFavorites = create<FavoritesState>()(
@@ -30,6 +32,14 @@ export const useFavorites = create<FavoritesState>()(
           favorites: state.favorites.filter((fav) => fav.id !== id),
         })),
       isFavorite: (id) => get().favorites.some((fav) => fav.id === id),
+      importFavorites: (items) => {
+        const existing = new Set(get().favorites.map((fav) => fav.id));
+        const incoming = items.filter((item) => !existing.has(item.id));
+        if (incoming.length) {
+          set((state) => ({ favorites: [...state.favorites, ...incoming] }));
+        }
+        return incoming.length;
+      },
     }),
     {
       name: 'nebula-favorites',

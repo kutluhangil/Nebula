@@ -181,3 +181,76 @@ test.describe("mobile", () => {
     await expect(page.getByPlaceholder(/search/i)).toBeVisible();
   });
 });
+
+test.describe("favorites", () => {
+  test("rejects a malformed import with a specific reason", async ({ page }) => {
+    await page.goto("/favorites");
+
+    await page.setInputFiles('input[type="file"]', {
+      name: "bad.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{ not json"),
+    });
+
+    await expect(page.getByRole("status")).toContainText(/not valid JSON/i);
+  });
+
+  test("round-trips an exported file", async ({ page }) => {
+    await page.goto("/favorites");
+
+    // Import a known-good export, then confirm the item is listed.
+    await page.setInputFiles('input[type="file"]', {
+      name: "nebula-favorites.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          favorites: [
+            {
+              id: "apod-test-1",
+              type: "apod",
+              title: "Imported Test Item",
+              subtitle: "2026-01-01",
+              date: "2026-01-01",
+            },
+          ],
+        })
+      ),
+    });
+
+    await expect(page.getByRole("status")).toContainText(/Imported 1 item/i);
+    await expect(page.getByText("Imported Test Item")).toBeVisible();
+  });
+});
+
+test.describe("source status", () => {
+  test("footer reports live status rather than static markup", async ({ page }) => {
+    await page.goto("/");
+
+    // Fail one probe and confirm the footer actually reflects it.
+    await page.route("**/api/health", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          checkedAt: new Date().toISOString(),
+          overall: "down",
+          sources: [
+            {
+              id: "nasa",
+              label: "NASA Open APIs",
+              href: "https://api.nasa.gov/",
+              status: "down",
+              latencyMs: 120,
+              detail: "Simulated outage",
+            },
+          ],
+        }),
+      })
+    );
+    await page.reload();
+
+    await expect(page.locator("footer").getByText("Down")).toBeVisible();
+  });
+});

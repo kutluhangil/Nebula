@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-29 — Alert engine, live source health and resilience
+
+### Fixed
+- One earthquake alert engine replaces two. A fixed M6.5 rule in the quake list deduplicated in a ref that reset on every remount (so it re-alerted after navigation), while the watchlist rule persisted seen ids but notified about only the first match and marked every match seen. Between them a quake could alert twice, and new quakes were silently swallowed.
+- The footer's "System Status" list is a real probe of each source via `/api/health`; it previously rendered "Operational" as static markup whether or not anything was reachable.
+- Every upstream fetch has a 10s timeout. A source that accepted the connection and then stalled previously held the route open until the platform timeout.
+- API routes name the source and cause on failure, including timeouts, and the launch route returns 502 rather than 500 for an upstream failure.
+
+### Added
+- Favorites export and import, so a collection is no longer trapped in one browser. Malformed imports are rejected with a specific reason instead of failing silently.
+- The hero shows the most recent recorded event, linking through to the Earth monitor; the landing page was previously promotional only.
+
+### Internal
+- CI actions bumped to v5 to clear the Node 20 deprecation warning.
+- Test suite grown to 36, covering health probes, favorites round-tripping and the footer status rendering.
+
 ## 2026-08-29 — Product depth, tests and release quality
 
 ### Added

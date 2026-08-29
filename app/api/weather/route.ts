@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // Open-Meteo needs no API key. Coordinates come from the caller so the widget
 // can show the viewer's own weather; without them it falls back to Cape
@@ -58,7 +59,9 @@ export async function GET(request: Request) {
         "&current=temperature_2m,relative_humidity_2m,is_day,precipitation,wind_speed_10m" +
         "&daily=sunrise,sunset&timezone=auto",
       // A viewer-specific request must not be cached for everyone else.
-      isLocal ? { cache: "no-store" } : { next: { revalidate: 3600 } }
+      withTimeout(
+        isLocal ? { cache: "no-store" } : { next: { revalidate: 3600 } }
+      )
     );
 
     if (!response.ok) {
@@ -79,10 +82,7 @@ export async function GET(request: Request) {
     console.error("Weather API Error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch weather data",
+        error: upstreamError("Open-Meteo", error),
       },
       { status: 502 }
     );

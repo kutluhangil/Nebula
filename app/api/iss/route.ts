@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // wheretheiss.at reports measured altitude, velocity and eclipse state rather
 // than the nominal figures this route used to hardcode. It also serves the
@@ -17,7 +18,7 @@ interface WhereTheIss {
 
 export async function GET() {
   try {
-    const res = await fetch(ISS_URL, { next: { revalidate: 5 } });
+    const res = await fetch(ISS_URL, withTimeout({ next: { revalidate: 5 } }));
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -50,10 +51,7 @@ export async function GET() {
     console.error("ISS API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch ISS position",
+        error: upstreamError("wheretheiss.at", error),
       },
       { status: 502 }
     );

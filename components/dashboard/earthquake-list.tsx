@@ -3,10 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, X, MapPin, Clock, Waves, Bell } from "lucide-react";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { FavoriteButton } from "@/components/ui/favorite-button";
-import { useNotifications } from "@/hooks/use-notifications";
+import { useWatchlist } from "@/hooks/use-watchlist";
 import { fetchJson } from "@/lib/api-client";
 import { useModal } from "@/hooks/use-modal";
 
@@ -48,8 +48,8 @@ export function EarthquakeList() {
   const [selected, setSelected] = useState<EarthquakeFeature | null>(null);
   const closeDetail = useCallback(() => setSelected(null), []);
   const modalRef = useModal(Boolean(selected), closeDetail);
-  const { permission, requestPermission, sendNotification } = useNotifications();
-  const notifiedIds = useRef<Set<string>>(new Set());
+  // Alerts are owned by the watchlist engine; this list only links to it.
+  const { alertsEnabled } = useWatchlist();
 
   const { data, isLoading } = useQuery<{ features: EarthquakeFeature[] }>({
     queryKey: ["earthquakes"],
@@ -58,27 +58,6 @@ export function EarthquakeList() {
   });
 
   const quakes = data?.features?.slice(0, 15) || [];
-
-  // Check for new major earthquakes
-  useEffect(() => {
-    if (!data?.features || permission !== 'granted') return;
-
-    data.features.forEach(quake => {
-      const isMajor = quake.properties.mag >= 6.5;
-      const isNew = !notifiedIds.current.has(quake.id);
-
-      if (isMajor && isNew) {
-        sendNotification(`Major Earthquake Alert!`, {
-          body: `M${quake.properties.mag.toFixed(1)} detected near ${quake.properties.place}`,
-          icon: '/favicon.ico'
-        });
-        notifiedIds.current.add(quake.id);
-      } else if (isNew) {
-        // Just keep track of them so we don't notify if they get updated
-        notifiedIds.current.add(quake.id);
-      }
-    });
-  }, [data, permission, sendNotification]);
 
   if (isLoading) {
     return <div className="glass-panel h-64 skeleton" />;
@@ -93,15 +72,15 @@ export function EarthquakeList() {
       >
         <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
           <span className="text-[var(--text-dim)] text-xs font-semibold uppercase tracking-widest pl-2">Recent Quakes</span>
-          {permission === 'default' && (
-            <button
-              onClick={requestPermission}
+          {!alertsEnabled && (
+            <a
+              href="#watchlist"
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface)] hover:bg-[var(--surface)] text-[var(--text-faint)] text-[10px] transition-colors border border-[var(--border)]"
-              title="Enable notifications for major earthquakes (>6.5)"
+              title="Set up earthquake alerts in your watchlist"
             >
               <Bell className="w-3 h-3" />
-              Enable Alerts
-            </button>
+              Set up alerts
+            </a>
           )}
         </div>
         <div className="divide-y divide-[var(--border)]">

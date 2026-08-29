@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // Near-Earth objects from NASA NEO. Solar flares used to be read from NASA
 // DONKI here, but that source is frequently unavailable and its failure took
@@ -25,7 +26,7 @@ export async function GET() {
 
     const res = await fetch(
       `https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=${apiKey}`,
-      { next: { revalidate: 3600 } }
+      withTimeout({ next: { revalidate: 3600 } })
     );
 
     if (!res.ok) {
@@ -63,10 +64,7 @@ export async function GET() {
     console.error("Space data API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch space data",
+        error: upstreamError("NASA NEO", error),
       },
       { status: 502 }
     );

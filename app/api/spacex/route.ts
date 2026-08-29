@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // The r-spacex API (api.spacexdata.com) is deprecated and offline. The Launch
 // Library 2 API (thespacedevs) is the reliable, key-free replacement. We filter
@@ -76,12 +77,8 @@ export async function GET() {
   try {
     const base = "https://ll.thespacedevs.com/2.2.0/launch";
     const [prevRes, upRes] = await Promise.all([
-      fetch(`${base}/previous/?limit=1&lsp__id=121&mode=detailed`, {
-        next: { revalidate: 3600 },
-      }),
-      fetch(`${base}/upcoming/?limit=6&lsp__id=121&mode=detailed`, {
-        next: { revalidate: 3600 },
-      }),
+      fetch(`${base}/previous/?limit=1&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
+      fetch(`${base}/upcoming/?limit=6&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
     ]);
 
     if (!prevRes.ok) {
@@ -105,8 +102,8 @@ export async function GET() {
   } catch (error) {
     console.error("SpaceX API error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch SpaceX data" },
-      { status: 500 }
+      { error: upstreamError("Launch Library 2", error) },
+      { status: 502 }
     );
   }
 }

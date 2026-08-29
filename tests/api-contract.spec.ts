@@ -203,3 +203,24 @@ test.describe("ai report", () => {
     expect((await response.json()).error).toContain("Invalid earthquakeCount");
   });
 });
+
+test.describe("health", () => {
+  test("reports real per-source status", async ({ request }) => {
+    const response = await request.get("/api/health");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(Date.parse(body.checkedAt)).not.toBeNaN();
+    expect(["operational", "degraded", "down"]).toContain(body.overall);
+    expect(body.sources.length).toBeGreaterThan(0);
+
+    for (const source of body.sources) {
+      // The footer used to render "Operational" as static markup; a real probe
+      // has to carry a measurable latency and a status derived from it.
+      expect(["operational", "degraded", "down"]).toContain(source.status);
+      expect(typeof source.latencyMs).toBe("number");
+      expect(source.label).toBeTruthy();
+      expect(source.href).toMatch(/^https:\/\//);
+    }
+  });
+})

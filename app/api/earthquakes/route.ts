@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 
 // USGS accepts `time` (most recent first) and `magnitude` (largest first).
 // These are genuinely different feeds: the dashboard list and the timeline are
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
 
     const res = await fetch(
       `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=4.0&starttime=${sevenDaysAgo}&orderby=${orderby}&limit=100`,
-      { next: { revalidate: 600 } }
+      withTimeout({ next: { revalidate: 600 } })
     );
 
     if (!res.ok) {
@@ -42,10 +43,7 @@ export async function GET(request: Request) {
     console.error("Earthquakes API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch earthquakes",
+        error: upstreamError("USGS", error),
       },
       { status: 502 }
     );

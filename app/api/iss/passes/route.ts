@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTimeout, upstreamError } from "@/lib/upstream";
 import * as satellite from "satellite.js";
 
 // Next visible ISS passes for an observer, propagated from the live TLE with
@@ -181,7 +182,7 @@ export async function GET(request: Request) {
   try {
     // The TLE is refreshed a few times a day upstream; an hour of caching keeps
     // predictions current without refetching per request.
-    const res = await fetch(TLE_URL, { next: { revalidate: 3600 } });
+    const res = await fetch(TLE_URL, withTimeout({ next: { revalidate: 3600 } }));
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(
@@ -253,10 +254,7 @@ export async function GET(request: Request) {
     console.error("ISS passes API error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to compute ISS passes",
+        error: upstreamError("ISS TLE", error),
       },
       { status: 502 }
     );

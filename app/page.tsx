@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { fetchJson } from "@/lib/api-client";
 import {
   ArrowRight,
   Globe,
@@ -21,6 +24,57 @@ const Globe3D = dynamic(() => import("@/components/earth/globe-3d"), {
   ssr: false,
   loading: () => <div className="w-full h-full" />,
 });
+
+/* ---------- Latest recorded event ---------- */
+
+interface LatestQuake {
+  features: {
+    id: string;
+    properties: { mag: number; place: string; time: number };
+  }[];
+}
+
+/**
+ * The most recent event any of the feeds has recorded. The hero previously
+ * only described the platform; this makes the landing page itself live.
+ */
+function LatestEvent() {
+  const { data, isLoading, isError } = useQuery<LatestQuake>({
+    queryKey: ["earthquakes"],
+    queryFn: () => fetchJson("/api/earthquakes"),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // The feed is chronological, so the first entry is the most recent event.
+  const latest = data?.features?.[0];
+
+  if (isLoading) {
+    return (
+      <span className="tracking-[0.2em] uppercase" aria-busy="true">
+        Reading feeds…
+      </span>
+    );
+  }
+
+  // The hero must never advertise data it does not have.
+  if (isError || !latest) return null;
+
+  return (
+    <Link
+      href="/earth"
+      className="flex items-center gap-2 transition-colors hover:text-[var(--text-dim)]"
+    >
+      <Activity className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+      <span className="tabular text-[var(--text-dim)] tracking-widest">
+        M{latest.properties.mag.toFixed(1)}
+      </span>
+      <span className="tracking-[0.2em] uppercase">
+        {latest.properties.place} ·{" "}
+        {formatDistanceToNow(latest.properties.time, { addSuffix: true })}
+      </span>
+    </Link>
+  );
+}
 
 /* ---------- Live UTC clock (mono telemetry) ---------- */
 
@@ -169,6 +223,8 @@ export default function HomePage() {
               <span className="tabular text-[var(--text-dim)] tracking-widest">{utc.time}</span>
               <span className="tracking-[0.2em] uppercase">UTC · {utc.date}</span>
             </span>
+            <span className="hidden sm:block w-px h-3 bg-[var(--border-strong)]" />
+            <LatestEvent />
             <span className="hidden sm:block w-px h-3 bg-[var(--border-strong)]" />
             <span className="tracking-[0.2em] uppercase">Feeds: {sources.join(" · ")}</span>
           </motion.div>

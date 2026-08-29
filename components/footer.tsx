@@ -1,6 +1,8 @@
 "use client";
 
 import { Globe, ArrowUpRight, Activity } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/api-client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SpotlightCard } from "./ui/spotlight-card";
@@ -37,6 +39,81 @@ function FooterClock() {
       <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-faint)] opacity-50 animate-pulse" />
       UTC {dt.time}
     </div>
+  );
+}
+
+interface SourceHealth {
+  id: string;
+  label: string;
+  href: string;
+  status: "operational" | "degraded" | "down";
+  latencyMs: number | null;
+  detail: string | null;
+}
+
+const STATUS_STYLE = {
+  operational: { color: "#10b981", label: "Operational" },
+  degraded: { color: "#eab308", label: "Degraded" },
+  down: { color: "#e0483d", label: "Down" },
+} as const;
+
+/**
+ * Live source health. This list previously rendered "Operational" as static
+ * markup for every source, whether or not any of them were reachable.
+ */
+function SourceStatus() {
+  const { data, isLoading } = useQuery<{ sources: SourceHealth[] }>({
+    queryKey: ["health"],
+    queryFn: () => fetchJson("/api/health"),
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 5,
+  });
+
+  return (
+    <SpotlightCard className="p-6 -m-6 border-none bg-transparent">
+      <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
+        <Activity className="w-4 h-4 text-[var(--text-faint)]" /> System Status
+      </h4>
+      <ul className="space-y-4">
+        {isLoading && (
+          <li className="text-sm font-light text-[var(--text-faint)]">
+            Checking sources…
+          </li>
+        )}
+        {data?.sources.map((source) => {
+          const style = STATUS_STYLE[source.status];
+          return (
+            <li key={source.id} className="flex items-center justify-between gap-4 group">
+              <a
+                href={source.href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1"
+              >
+                {source.label}
+                <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+              </a>
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className="font-mono text-[10px] uppercase tracking-widest"
+                  style={{ color: style.color }}
+                  title={source.detail ?? undefined}
+                >
+                  {style.label}
+                </span>
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    backgroundColor: style.color,
+                    boxShadow: `0 0 8px ${style.color}99`,
+                  }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </SpotlightCard>
   );
 }
 
@@ -88,41 +165,7 @@ export function Footer() {
               </ul>
             </div>
 
-            <SpotlightCard className="p-6 -m-6 border-none bg-transparent">
-              <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[var(--text-faint)]" /> System Status
-              </h4>
-              <ul className="space-y-4">
-                <li className="flex items-center justify-between group">
-                  <a href="https://api.nasa.gov/" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">NASA Open APIs <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-                  </div>
-                </li>
-                <li className="flex items-center justify-between group">
-                  <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">USGS Earthquakes <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-                  </div>
-                </li>
-                <li className="flex items-center justify-between group">
-                  <a href="https://thespacedevs.com/llapi" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">Launch Library 2 <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-                  </div>
-                </li>
-                <li className="flex items-center justify-between group">
-                  <a href="https://www.swpc.noaa.gov/" target="_blank" rel="noreferrer" className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors text-sm font-light flex items-center gap-1">NOAA Space Weather <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" /></a>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase text-[#10b981] tracking-widest">Operational</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-                  </div>
-                </li>
-              </ul>
-            </SpotlightCard>
+            <SourceStatus />
 
             <div>
               <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider">Project</h4>

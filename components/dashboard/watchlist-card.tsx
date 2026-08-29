@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { Bell, BellRing, Check, SlidersHorizontal, Waves } from "lucide-react";
 import { useWatchlist, type EarthquakeThreshold } from "@/hooks/use-watchlist";
+import { useEarthquakeAlerts } from "@/hooks/use-earthquake-alerts";
 
 interface Earthquake {
   id: string;
@@ -13,41 +13,13 @@ export function WatchlistCard({ earthquakes }: { earthquakes: Earthquake[] }) {
   const {
     earthquakeThreshold,
     tsunamiOnly,
-    alertsEnabled,
-    knownEventIds,
     setEarthquakeThreshold,
     setTsunamiOnly,
-    setAlertsEnabled,
-    rememberEvents,
   } = useWatchlist();
 
-  useEffect(() => {
-    if (!alertsEnabled || typeof Notification === "undefined") return;
-    const matches = earthquakes.filter(
-      (quake) =>
-        quake.properties.mag >= earthquakeThreshold &&
-        (!tsunamiOnly || quake.properties.tsunami === 1) &&
-        !knownEventIds.includes(quake.id)
-    );
-    if (!matches.length) return;
-
-    const first = matches[0];
-    new Notification(`M${first.properties.mag.toFixed(1)} earthquake`, {
-      body: first.properties.place,
-      icon: "/favicon.ico",
-      tag: `earthquake-${first.id}`,
-    });
-    rememberEvents(matches.map((quake) => quake.id));
-  }, [alertsEnabled, earthquakeThreshold, earthquakes, knownEventIds, rememberEvents, tsunamiOnly]);
-
-  const enableAlerts = async () => {
-    if (typeof Notification === "undefined") return;
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      rememberEvents(earthquakes.map((quake) => quake.id));
-      setAlertsEnabled(true);
-    }
-  };
+  // The one place the alert engine is mounted.
+  const { alertsEnabled, enableAlerts, disableAlerts } =
+    useEarthquakeAlerts(earthquakes);
 
   return (
     <section id="watchlist" className="glass-panel p-5" aria-label="Earthquake watchlist">
@@ -62,7 +34,9 @@ export function WatchlistCard({ earthquakes }: { earthquakes: Earthquake[] }) {
           </div>
         </div>
         {alertsEnabled ? (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-400"><BellRing className="h-3.5 w-3.5" /> On</span>
+          <button type="button" onClick={disableAlerts} className="flex items-center gap-1.5 text-xs text-emerald-400" aria-pressed="true">
+            <BellRing className="h-3.5 w-3.5" /> On
+          </button>
         ) : (
           <button type="button" onClick={enableAlerts} className="btn-ghost !min-h-0 !px-3 !py-2 !text-xs">
             <Bell className="h-3.5 w-3.5" /> Enable alerts
