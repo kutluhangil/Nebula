@@ -26,7 +26,7 @@ export default function SpacePage() {
             <span className="italic text-[var(--accent)]">Observatory</span>
           </h1>
           <p className="text-[var(--text-faint)] text-sm mt-1">
-            NASA · NOAA · Open Notify · Live space data
+            NASA · NOAA · wheretheiss.at · Live space data
           </p>
         </motion.div>
 

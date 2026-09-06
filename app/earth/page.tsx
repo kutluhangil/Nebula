@@ -47,7 +47,13 @@ export default function EarthPage() {
     setEarthquakeThreshold,
     setTsunamiOnly,
   } = useWatchlist();
-  const { data, isLoading } = useQuery<{ features: EarthquakeFeature[] }>({
+  const {
+    data,
+    isLoading,
+    isError: quakesFailed,
+    error: quakesError,
+    refetch: refetchQuakes,
+  } = useQuery<{ features: EarthquakeFeature[] }>({
     queryKey: ["earthquakes"],
     queryFn: () => fetchJson("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
@@ -138,6 +144,28 @@ export default function EarthPage() {
           </div>
         </div>
 
+        {/* Counting an empty list as zero events would state, on the strength of
+            a failed request, that the planet recorded no earthquakes this week. */}
+        {quakesFailed && (
+          <div className="mb-6 glass-card p-6 flex flex-col items-center justify-center gap-3 text-center">
+            <Activity className="w-5 h-5 text-[var(--text-faint)]" />
+            <p className="text-[var(--text-dim)] text-sm">
+              USGS seismic data is unavailable right now.
+            </p>
+            <p className="text-[var(--text-faint)] text-xs max-w-md">
+              {quakesError instanceof Error
+                ? quakesError.message
+                : "Unknown error"}
+            </p>
+            <button
+              onClick={() => refetchQuakes()}
+              className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
@@ -177,7 +205,7 @@ export default function EarthPage() {
               className={`rounded-xl ${stat.bg} border ${stat.border} p-4 text-center`}
             >
               <div className={`text-2xl font-bold font-mono ${stat.color} mb-1`}>
-                {isLoading ? "—" : stat.value}
+                {isLoading || quakesFailed ? "—" : stat.value}
               </div>
               <div className="text-[var(--text-faint)] text-xs uppercase tracking-wide">
                 {stat.label}

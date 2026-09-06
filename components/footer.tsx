@@ -62,7 +62,7 @@ const STATUS_STYLE = {
  * markup for every source, whether or not any of them were reachable.
  */
 function SourceStatus() {
-  const { data, isLoading } = useQuery<{ sources: SourceHealth[] }>({
+  const { data, isLoading, isError } = useQuery<{ sources: SourceHealth[] }>({
     queryKey: ["health"],
     queryFn: () => fetchJson("/api/health"),
     staleTime: 1000 * 60 * 2,
@@ -78,6 +78,13 @@ function SourceStatus() {
         {isLoading && (
           <li className="text-sm font-light text-[var(--text-faint)]">
             Checking sources…
+          </li>
+        )}
+        {/* Without this the status list rendered as an empty heading — the one
+            component whose job is to report outages, silent about its own. */}
+        {isError && (
+          <li className="text-sm font-light text-[var(--text-faint)]">
+            Status checks could not be reached.
           </li>
         )}
         {data?.sources.map((source) => {

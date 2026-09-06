@@ -16,8 +16,18 @@
 - The Kp gauge's colour changes on NOAA's own band boundaries — active at Kp 4, storm at Kp 5, G3 upward at Kp 7 — so the colour and the written label now escalate at the same value.
 - The Earth textures in the 3D globe pin `three-globe@2.45.2`; the unversioned unpkg path followed whatever was published next.
 
+### Fixed (second pass — every remaining surface that failed silently)
+- The Earth page reported "0 total events, 0 major, 0 moderate, 0 tsunami alerts" and "0 events over the last 7 days" when USGS was unreachable, stating on the strength of a failed request that the planet had recorded no earthquakes all week. The counters now read "—" beside a named failure.
+- The launches page guarded every section on its own slice of the payload, so a failed feed rendered the page as a bare heading between the nav and the footer.
+- The dashboard's earthquake list, asteroid card and SpaceX card each rendered an empty panel on failure; the asteroid card summarised its empty list as "0 hazardous", indistinguishable from a genuinely quiet day.
+- The live briefing read "connecting" forever once a feed had actually failed.
+- The timeline said "Loading timeline events..." indefinitely when no feed could be reached.
+- The footer's status list — the one component whose job is reporting outages — went blank about its own probe failing, leaving "System Status" as an empty heading.
+- The launches page credited the "SpaceX API" (api.spacexdata.com, deprecated and offline) and the space page credited "Open Notify"; both feeds moved to Launch Library 2 and wheretheiss.at respectively.
+- The launches page's local types claimed an `upcoming` field the route never sends and a non-null `latest` the route may return as null.
+
 ### Internal
-- Thirteen regression tests added (36 to 49), each verified to fail against the behaviour it replaces.
+- Twenty-two regression tests added (36 to 58), each verified to fail against the behaviour it replaces.
 - Removed four unused dependencies: `axios`, `clsx`, `tailwind-merge` and `openai` (the report route calls the API over plain `fetch`).
 - `npm audit` reports zero vulnerabilities, down from one high (browserslist) and one moderate (fflate, reachable in production via three-stdlib).
 

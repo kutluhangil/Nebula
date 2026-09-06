@@ -23,7 +23,7 @@ interface TimelineEvent {
 }
 
 export default function TimelinePage() {
-  const { data: earthquakeData } = useQuery<{
+  const earthquakes = useQuery<{
     features: Array<{
       id: string;
       properties: { mag: number; place: string; time: number };
@@ -33,18 +33,28 @@ export default function TimelinePage() {
     queryFn: () => fetchJson("/api/earthquakes"),
   });
 
-  const { data: apodData } = useQuery<{ title: string; date: string }>({
+  const apod = useQuery<{ title: string; date: string }>({
     queryKey: ["apod"],
     queryFn: () => fetchJson("/api/apod"),
   });
 
-  const { data: spacexData } = useQuery<{
+  const spacex = useQuery<{
     latest: { name: string; date_utc: string; success: boolean | null };
     upcoming: Array<{ id: string; name: string; date_utc: string }>;
   }>({
     queryKey: ["spacex"],
     queryFn: () => fetchJson("/api/spacex"),
   });
+
+  const earthquakeData = earthquakes.data;
+  const apodData = apod.data;
+  const spacexData = spacex.data;
+
+  const feeds = [earthquakes, apod, spacex];
+  // Only when nothing could be read: one dead feed still leaves a timeline
+  // worth showing, and the entries that did load stay on it.
+  const feedsFailed = feeds.every((feed) => feed.isError);
+  const retryFeeds = () => feeds.forEach((feed) => feed.refetch());
 
   const events: TimelineEvent[] = [];
 
@@ -210,7 +220,20 @@ export default function TimelinePage() {
           {events.length === 0 && (
             <div className="text-center py-20 text-[var(--text-faint)]">
               <Clock className="w-8 h-8 mx-auto mb-3 opacity-30" />
-              <p>Loading timeline events...</p>
+              {/* Every feed failing used to read as a load that never finished. */}
+              <p>
+                {feedsFailed
+                  ? "No feed could be reached, so there is nothing to place on the timeline."
+                  : "Loading timeline events..."}
+              </p>
+              {feedsFailed && (
+                <button
+                  onClick={() => retryFeeds()}
+                  className="mt-4 px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           )}
         </div>

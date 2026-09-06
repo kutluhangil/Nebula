@@ -56,14 +56,36 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
 }
 
 export function SpaceXCard() {
-  const { data, isLoading } = useQuery<SpaceXData>({
+  const { data, isLoading, isError, error, refetch } = useQuery<SpaceXData>({
     queryKey: ["spacex"],
     queryFn: () => fetchJson("/api/spacex"),
     staleTime: 1000 * 60 * 30,
   });
 
   if (isLoading) {
-    return <div className="glass-panel h-72 skeleton" />;
+    return <div className="glass-panel h-72 skeleton" aria-busy="true" />;
+  }
+
+  // Every section below is guarded on its own slice of the payload, so without
+  // one the card used to render as an empty panel with no explanation.
+  if (isError || !data) {
+    return (
+      <div className="glass-panel p-5 h-72 flex flex-col items-center justify-center gap-3 text-center">
+        <Rocket className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          Launch data is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-xs">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   const latest = data?.latest;

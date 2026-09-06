@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize2, X, MapPin, Clock, Waves, Bell } from "lucide-react";
+import { Maximize2, X, MapPin, Clock, Waves, Bell, Activity } from "lucide-react";
 import { useCallback, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { FavoriteButton } from "@/components/ui/favorite-button";
@@ -51,7 +51,9 @@ export function EarthquakeList() {
   // Alerts are owned by the watchlist engine; this list only links to it.
   const { alertsEnabled } = useWatchlist();
 
-  const { data, isLoading } = useQuery<{ features: EarthquakeFeature[] }>({
+  const { data, isLoading, isError, error, refetch } = useQuery<{
+    features: EarthquakeFeature[];
+  }>({
     queryKey: ["earthquakes"],
     queryFn: () => fetchJson("/api/earthquakes"),
     refetchInterval: 1000 * 60 * 10,
@@ -60,7 +62,29 @@ export function EarthquakeList() {
   const quakes = data?.features?.slice(0, 15) || [];
 
   if (isLoading) {
-    return <div className="glass-panel h-64 skeleton" />;
+    return <div className="glass-panel h-64 skeleton" aria-busy="true" />;
+  }
+
+  // An empty list reads as a quiet week rather than as a feed that never
+  // answered, so the failure is stated instead.
+  if (isError || !data) {
+    return (
+      <div className="glass-panel p-4 h-64 flex flex-col items-center justify-center gap-3 text-center">
+        <Activity className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          USGS seismic data is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-xs">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

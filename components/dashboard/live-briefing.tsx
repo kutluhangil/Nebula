@@ -19,7 +19,8 @@ interface IssData {
   iss_position: { latitude: string; longitude: string };
 }
 
-function timeLabel(updatedAt: number) {
+function timeLabel(updatedAt: number, failed: boolean) {
+  if (failed) return "Unavailable";
   if (!updatedAt) return "Connecting";
   const seconds = Math.max(0, Math.floor((Date.now() - updatedAt) / 1000));
   return seconds < 60 ? "Just updated" : `${Math.floor(seconds / 60)}m ago`;
@@ -73,23 +74,59 @@ export function LiveBriefing() {
         <BriefItem
           icon={Activity}
           source="USGS · M4+ / 7 days"
-          updated={timeLabel(earthquakes.dataUpdatedAt)}
-          title={largest ? `${quakeList.length} events, ${majorCount} major` : "Seismic feed connecting"}
-          detail={largest ? `Largest: M${largest.properties.mag.toFixed(1)} · ${largest.properties.place}` : "Waiting for the latest verified events."}
+          updated={timeLabel(earthquakes.dataUpdatedAt, earthquakes.isError)}
+          title={
+            earthquakes.isError
+              ? "Seismic feed unavailable"
+              : largest
+              ? `${quakeList.length} events, ${majorCount} major`
+              : "Seismic feed connecting"
+          }
+          detail={
+            earthquakes.isError
+              ? "USGS did not answer; counts are not shown rather than reported as zero."
+              : largest
+              ? `Largest: M${largest.properties.mag.toFixed(1)} · ${largest.properties.place}`
+              : "Waiting for the latest verified events."
+          }
         />
         <BriefItem
           icon={Satellite}
           source="wheretheiss.at · 5 sec"
-          updated={timeLabel(iss.dataUpdatedAt)}
-          title={Number.isFinite(lat) ? `ISS over ${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"}` : "ISS position connecting"}
-          detail={Number.isFinite(lon) ? `${Math.abs(lon).toFixed(1)}° ${lon >= 0 ? "E" : "W"} · orbital telemetry is live` : "Waiting for orbital telemetry."}
+          updated={timeLabel(iss.dataUpdatedAt, iss.isError)}
+          title={
+            iss.isError
+              ? "ISS telemetry unavailable"
+              : Number.isFinite(lat)
+              ? `ISS over ${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"}`
+              : "ISS position connecting"
+          }
+          detail={
+            iss.isError
+              ? "wheretheiss.at did not answer."
+              : Number.isFinite(lon)
+              ? `${Math.abs(lon).toFixed(1)}° ${lon >= 0 ? "E" : "W"} · orbital telemetry is live`
+              : "Waiting for orbital telemetry."
+          }
         />
         <BriefItem
           icon={Rocket}
           source="Launch Library 2 · SpaceX"
-          updated={timeLabel(launches.dataUpdatedAt)}
-          title={nextLaunch ? nextLaunch.name : "Launch manifest connecting"}
-          detail={nextLaunch ? `Next launch ${new Date(nextLaunch.date_utc).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "Waiting for the upcoming manifest."}
+          updated={timeLabel(launches.dataUpdatedAt, launches.isError)}
+          title={
+            launches.isError
+              ? "Launch manifest unavailable"
+              : nextLaunch
+              ? nextLaunch.name
+              : "Launch manifest connecting"
+          }
+          detail={
+            launches.isError
+              ? "Launch Library 2 did not answer."
+              : nextLaunch
+              ? `Next launch ${new Date(nextLaunch.date_utc).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+              : "Waiting for the upcoming manifest."
+          }
         />
       </div>
     </section>

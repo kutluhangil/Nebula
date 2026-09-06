@@ -466,3 +466,138 @@ test.describe("space weather colours", () => {
     expect(active).not.toBe(minorStorm);
   });
 });
+
+/**
+ * The remaining cards and pages that rendered a confident empty state instead
+ * of reporting their source had failed.
+ */
+test.describe("silent failure", () => {
+  test("the launches page reports a dead feed instead of rendering bare", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/spacex");
+    await page.goto("/launches");
+
+    // Every section here is guarded on its own slice of the payload, so the
+    // page used to render as a heading between the nav and the footer.
+    await expect(
+      page.getByText(/Launch data is unavailable right now/i)
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /retry/i })).toBeVisible();
+  });
+
+  test("the asteroid card does not report zero hazardous when NEO fails", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/space");
+    await page.goto("/dashboard");
+
+    const card = page
+      .getByText("Near-Earth Objects")
+      .locator("xpath=ancestor::div[contains(@class,'space-y-4')][1]");
+    await expect(card).toContainText(
+      /near-Earth object data is unavailable right now/i
+    );
+    // It used to summarise the empty list as a genuinely quiet day.
+    await expect(card).not.toContainText("HAZARDOUS");
+  });
+
+  test("the spacex card reports a dead feed instead of an empty panel", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/spacex");
+    await page.goto("/dashboard");
+
+    await expect(
+      page.getByText(/Launch data is unavailable right now/i).first()
+    ).toBeVisible();
+  });
+});
+
+test.describe("source attribution", () => {
+  test("no page still credits a source the app stopped reading", async ({
+    page,
+  }) => {
+    for (const path of ["/", "/dashboard", "/space", "/launches", "/news"]) {
+      await page.goto(path);
+      const body = await page.locator("body").innerText();
+      // Open Notify was replaced by wheretheiss.at, and the r-spacex API this
+      // app once used is deprecated and offline.
+      expect(body, `${path} credits a retired source`).not.toMatch(
+        /Open Notify|SpaceX API/
+      );
+    }
+  });
+});
+
+test.describe("dead seismic feed", () => {
+  test("the Earth page does not report zero events for the planet", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/earthquakes");
+    await page.goto("/earth");
+
+    await expect(
+      page.getByText(/USGS seismic data is unavailable right now/i).first()
+    ).toBeVisible();
+
+    // The counters used to read 0 total, 0 major, 0 moderate, 0 tsunami — a
+    // claim that the planet recorded nothing all week.
+    const totals = page
+      .getByText("Total Events")
+      .locator("xpath=preceding-sibling::div[1]");
+    await expect(totals).toHaveText("—");
+  });
+
+  test("the quake list says the feed failed instead of showing nothing", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/earthquakes");
+    await page.goto("/dashboard");
+
+    const panel = page
+      .getByText("Earthquake Monitor")
+      .locator("xpath=ancestor::div[contains(@class,'space-y-4')][1]");
+    await expect(panel).toContainText(/unavailable right now/i);
+  });
+
+  test("the briefing stops saying it is connecting", async ({ page }) => {
+    await breakRoute(page, "/api/earthquakes");
+    await page.goto("/dashboard");
+
+    const briefing = page
+      .getByText("Live briefing")
+      .locator("xpath=ancestor::section[1]");
+    await expect(briefing).toContainText("Seismic feed unavailable");
+    await expect(briefing).not.toContainText("Seismic feed connecting");
+  });
+});
+
+test.describe("timeline", () => {
+  test("reports unreachable feeds rather than loading forever", async ({
+    page,
+  }) => {
+    for (const path of ["/api/earthquakes", "/api/apod", "/api/spacex"]) {
+      await breakRoute(page, path);
+    }
+    await page.goto("/timeline");
+
+    await expect(page.getByText(/No feed could be reached/i)).toBeVisible();
+    await expect(page.getByText(/Loading timeline events/i)).toHaveCount(0);
+  });
+});
+
+test.describe("footer status", () => {
+  test("says so when the status check itself cannot be reached", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/health");
+    await page.goto("/");
+
+    // The one component whose job is reporting outages used to go silent about
+    // its own, leaving "System Status" as an empty heading.
+    await expect(
+      page.locator("footer").getByText(/Status checks could not be reached/i)
+    ).toBeVisible();
+  });
+});
