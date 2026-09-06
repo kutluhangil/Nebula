@@ -6,7 +6,24 @@ import { Zap, Sun, Activity } from "lucide-react";
 import { kpColor } from "@/lib/dataviz";
 import { fetchJson } from "@/lib/api-client";
 
-const KP_LEVELS = ["Quiet", "Quiet", "Unsettled", "Active", "Minor Storm", "Moderate Storm", "Strong Storm", "Severe Storm", "Extreme Storm"];
+// NOAA SWPC reads the planetary K index against its G storm scale: Kp 0-2 is
+// quiet, 3 unsettled, 4 active, and a geomagnetic storm only begins at Kp 5
+// (G1) running to Kp 9 (G5). The index into this array is the Kp value itself,
+// so it needs an entry for every level from 0 to 9. It previously held nine
+// entries starting the storm bands one step early, which announced a storm on
+// merely active days.
+const KP_LEVELS = [
+  "Quiet",
+  "Quiet",
+  "Quiet",
+  "Unsettled",
+  "Active",
+  "Minor Storm",
+  "Moderate Storm",
+  "Strong Storm",
+  "Severe Storm",
+  "Extreme Storm",
+];
 
 interface SolarData {
   kpIndex: number;
@@ -36,7 +53,7 @@ function KPGauge({ value }: { value: number }) {
         </div>
         <div className="text-right">
           <div className="text-[var(--text-dim)] text-sm font-medium">
-            {KP_LEVELS[Math.min(value, 8)]}
+            {KP_LEVELS[Math.min(Math.max(value, 0), KP_LEVELS.length - 1)]}
           </div>
           <div className="text-[var(--text-faint)] text-xs">Activity Level</div>
         </div>

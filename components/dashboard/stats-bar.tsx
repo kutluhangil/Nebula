@@ -13,7 +13,8 @@ import {
 import { fetchJson } from "@/lib/api-client";
 
 interface StatsBarProps {
-  earthquakeCount: number;
+  /** Undefined until the earthquake feed answers, so loading reads as "—". */
+  earthquakeCount: number | undefined;
 }
 
 export function StatsBar({ earthquakeCount }: StatsBarProps) {
@@ -27,6 +28,15 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
     queryKey: ["space"],
     queryFn: () => fetchJson<{ asteroids?: { is_potentially_hazardous_asteroid: boolean }[] }>("/api/space"),
     staleTime: 1000 * 60 * 60,
+  });
+
+  // The ISS reports its measured velocity; this tile used to print a fixed
+  // nominal figure that stayed on screen even when the feed was down. The query
+  // key matches the tracker's, so React Query serves both from one request.
+  const { data: iss } = useQuery({
+    queryKey: ["iss"],
+    queryFn: () => fetchJson<{ velocity?: number }>("/api/iss"),
+    refetchInterval: 5000,
   });
 
   const { data: solar } = useQuery({
@@ -46,7 +56,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
     {
       icon: Activity,
       label: "Earthquakes (7d)",
-      value: earthquakeCount || "—",
+      value: earthquakeCount ?? "—",
       color: "text-[var(--text-dim)]",
       bg: "bg-emerald-500/5",
       border: "border-emerald-500/10",
@@ -54,7 +64,9 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
     {
       icon: Satellite,
       label: "ISS Speed",
-      value: "27,600 km/h",
+      value: iss?.velocity
+        ? `${Math.round(iss.velocity).toLocaleString()} km/h`
+        : "—",
       color: "text-[var(--text-dim)]",
       bg: "bg-blue-500/5",
       border: "border-blue-500/10",
@@ -70,7 +82,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
     {
       icon: AlertTriangle,
       label: "Hazardous Asteroids",
-      value: hazardousAsteroids !== undefined ? hazardousAsteroids : "—",
+      value: spaceData ? hazardousAsteroids : "—",
       color: "text-[var(--text-dim)]",
       bg: "bg-orange-500/5",
       border: "border-orange-500/10",

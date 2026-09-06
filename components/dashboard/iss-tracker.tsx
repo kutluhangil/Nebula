@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { MapPin, Gauge, ArrowUp, Eye, Sun } from "lucide-react";
+import { MapPin, Gauge, ArrowUp, Eye, Sun, Satellite } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
 import { useLocation } from "@/hooks/use-location";
 
@@ -170,7 +170,7 @@ function ISSGlobe({
 export function ISSTracker() {
   const { coords, status, request } = useLocation();
 
-  const { data, isLoading } = useQuery<ISSPosition>({
+  const { data, isLoading, isError, error, refetch } = useQuery<ISSPosition>({
     queryKey: ["iss"],
     queryFn: () => fetchJson("/api/iss"),
     refetchInterval: 5000,
@@ -186,12 +186,35 @@ export function ISSTracker() {
     staleTime: 1000 * 60 * 30,
   });
 
-  const lat = parseFloat(data?.iss_position?.latitude || "0");
-  const lon = parseFloat(data?.iss_position?.longitude || "0");
-
   if (isLoading) {
-    return <div className="glass-panel h-64 skeleton" />;
+    return <div className="glass-panel h-64 skeleton" aria-busy="true" />;
   }
+
+  // Falling back to zero here would draw the station off the coast of Africa
+  // and label it live telemetry. With no position there is nothing honest to
+  // render, so the card says so instead.
+  if (isError || !data) {
+    return (
+      <div className="glass-panel p-4 h-64 flex flex-col items-center justify-center gap-3 text-center">
+        <Satellite className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          ISS telemetry is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-xs">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const lat = parseFloat(data.iss_position.latitude);
+  const lon = parseFloat(data.iss_position.longitude);
 
   return (
     <motion.div

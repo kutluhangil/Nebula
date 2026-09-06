@@ -36,7 +36,10 @@ export default function DashboardPage() {
     refetchInterval: 1000 * 60 * 10,
   });
 
-  const totalQuakes = earthquakeData?.features?.length || 0;
+  // Left undefined until the feed answers. Flattening it to 0 here made the
+  // AI report fire twice on every load — once on a count the page was about to
+  // replace, which with an API key set is a paid call on a wrong number.
+  const totalQuakes = earthquakeData?.features?.length;
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-6 lg:px-8 selection:bg-[var(--surface-hover)]">

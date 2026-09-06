@@ -26,7 +26,7 @@ interface WeatherData {
 export function WeatherWidget() {
   const { coords, status, request } = useLocation();
 
-  const { data, isLoading } = useQuery<WeatherData>({
+  const { data, isLoading, isError, error, refetch } = useQuery<WeatherData>({
     queryKey: ["weather", coords?.lat ?? null, coords?.lon ?? null],
     queryFn: () =>
       fetchJson(
@@ -38,10 +38,28 @@ export function WeatherWidget() {
   });
 
   if (isLoading) {
-    return <div className="glass-panel h-48 skeleton" />;
+    return <div className="glass-panel h-48 skeleton" aria-busy="true" />;
   }
 
-  if (!data) return null;
+  if (isError || !data) {
+    return (
+      <div className="glass-panel p-5 h-48 flex flex-col items-center justify-center gap-3 text-center">
+        <Cloud className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          Weather is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-xs">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const { current, daily } = data;
   const isDay = current.is_day === 1;

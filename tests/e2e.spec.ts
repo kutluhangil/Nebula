@@ -254,3 +254,145 @@ test.describe("source status", () => {
     await expect(page.locator("footer").getByText("Down")).toBeVisible();
   });
 });
+
+/**
+ * Regressions for the fabricated-constant and silent-failure class of bug.
+ * Each of these passed review and shipped once; the assertions below are what
+ * would have caught them.
+ */
+
+/** Serves a route a fixed payload so a value-dependent assertion is stable. */
+async function stubRoute(page: Page, path: string, body: unknown) {
+  await page.route(`**${path}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+test.describe("iss tracker", () => {
+  test("reports an error rather than placing the station at 0°,0°", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/iss");
+    await page.goto("/dashboard");
+
+    await expect(
+      page.getByText(/ISS telemetry is unavailable right now/i)
+    ).toBeVisible();
+    // The card used to fall back to parseFloat(undefined || "0"), printing the
+    // Gulf of Guinea as the station's live position.
+    await expect(page.getByText("0.0000°")).toHaveCount(0);
+  });
+
+  test("speed comes from the feed, not a nominal constant", async ({ page }) => {
+    await stubRoute(page, "/api/iss", {
+      iss_position: { latitude: "12.5", longitude: "-40.25" },
+      timestamp: Math.floor(Date.now() / 1000),
+      altitude: 421.7,
+      velocity: 27123,
+      visibility: "daylight",
+      footprint: 4551,
+    });
+    await page.goto("/dashboard");
+
+    // The stats tile printed a hardcoded "27,600 km/h" regardless of the feed.
+    await expect(page.getByText("27,123 km/h").first()).toBeVisible();
+    await expect(page.getByText("27,600 km/h")).toHaveCount(0);
+  });
+});
+
+/** The Kp gauge's activity label — the sibling above its "Activity Level" caption. */
+function kpActivityLabel(page: Page) {
+  return page
+    .getByText("Activity Level", { exact: true })
+    .locator("xpath=preceding-sibling::div[1]");
+}
+
+test.describe("space weather labels", () => {
+  test("Kp 4 is active, not a geomagnetic storm", async ({ page }) => {
+    await stubRoute(page, "/api/solar", {
+      kpIndex: 4,
+      observedAt: "2026-01-01T00:00:00",
+      auroraProbability: 12,
+      auroraObservedAt: "2026-01-01T00:00:00",
+      geoStorms: 0,
+      solarFlares: 0,
+      source: "NOAA Space Weather Prediction Center",
+    });
+    await page.goto("/dashboard");
+
+    // NOAA's G scale starts at Kp 5. The label array was shifted one position,
+    // so Kp 4 announced a "Minor Storm" on a merely active day.
+    await expect(kpActivityLabel(page)).toHaveText("Active");
+  });
+
+  test("Kp 5 is the first storm level", async ({ page }) => {
+    await stubRoute(page, "/api/solar", {
+      kpIndex: 5,
+      observedAt: "2026-01-01T00:00:00",
+      auroraProbability: 30,
+      auroraObservedAt: "2026-01-01T00:00:00",
+      geoStorms: 1,
+      solarFlares: 0,
+      source: "NOAA Space Weather Prediction Center",
+    });
+    await page.goto("/dashboard");
+
+    await expect(kpActivityLabel(page)).toHaveText("Minor Storm");
+  });
+});
+
+test.describe("weather widget", () => {
+  test("shows an error state instead of disappearing", async ({ page }) => {
+    await breakRoute(page, "/api/weather");
+    await page.goto("/dashboard");
+
+    // The widget used to `return null`, vanishing from the grid with no reason.
+    await expect(
+      page.getByText(/Weather is unavailable right now/i)
+    ).toBeVisible();
+  });
+});
+
+test.describe("ai report", () => {
+  test("waits for the real earthquake count before generating", async ({
+    page,
+  }) => {
+    const counts: unknown[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/api/ai-report")) {
+        counts.push(JSON.parse(request.postData() ?? "{}").earthquakeCount);
+      }
+    });
+
+    await page.goto("/dashboard");
+    await expect(page.getByText(/Auto-generated/)).toBeVisible();
+
+    // It used to fire twice: once on a placeholder 0 while the feed was still
+    // in flight, then again on the real count — a paid model call on a number
+    // the page was about to replace.
+    expect(counts).not.toContain(0);
+    expect(counts.length).toBe(1);
+  });
+});
+
+test.describe("stats bar", () => {
+  test("does not claim zero hazardous asteroids while still loading", async ({
+    page,
+  }) => {
+    await page.route("**/api/space", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await route.continue();
+    });
+    await page.goto("/dashboard");
+
+    const tile = page
+      .getByText("Hazardous Asteroids")
+      .locator("xpath=ancestor::div[1]/..");
+    // The "—" branch was dead code, so a pending feed rendered a confident 0.
+    await expect(tile).toContainText("—");
+  });
+});

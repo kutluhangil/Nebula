@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-06 — Data-accuracy audit: fabricated constants and silent failures
+
+### Fixed
+- Kp index activity labels were shifted one position against the NOAA G scale, so seven of the ten levels were wrong: Kp 4 announced a "Minor Storm" on a merely active day, and every storm band from G1 to G4 was named one step too severe. NOAA's scale has no storm below Kp 5.
+- The ISS tracker fell back to `parseFloat(undefined || "0")` and had no error branch, so a failing feed rendered 0.0000°, 0.0000° — the Gulf of Guinea — as the station's live position. It now reports the failure with a retry.
+- The "ISS Speed" stat was the hardcoded string `"27,600 km/h"`, unchanged even while `/api/iss` was down. It reads the measured velocity the feed already returned.
+- The daily AI report fired twice on every dashboard load: once on a placeholder count of 0 while the earthquake feed was still in flight, then again on the real count. With `OPENAI_API_KEY` set that was a paid model call on a number the page was about to replace. The count is now undefined until the feed answers and the query waits for it.
+- The hazardous-asteroid stat rendered a confident `0` while its feed was still loading; its "—" fallback tested `.filter().length !== undefined`, which is never false.
+- The live briefing credited ISS telemetry to "Open Notify", a source the app stopped using when the route moved to wheretheiss.at.
+- The weather widget returned `null` on failure, vanishing from the dashboard with no explanation. It now shows an error state with a retry, matching every other card.
+
+### Internal
+- Seven regression tests added (36 to 43), each verified to fail against the behaviour it replaces.
+- Removed four unused dependencies: `axios`, `clsx`, `tailwind-merge` and `openai` (the report route calls the API over plain `fetch`).
+- `npm audit` reports zero vulnerabilities, down from one high (browserslist) and one moderate (fflate, reachable in production via three-stdlib).
+
 ## 2026-08-29 — Alert engine, live source health and resilience
 
 ### Fixed

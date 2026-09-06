@@ -79,7 +79,7 @@ export function LiveBriefing() {
         />
         <BriefItem
           icon={Satellite}
-          source="Open Notify · 5 sec"
+          source="wheretheiss.at · 5 sec"
           updated={timeLabel(iss.dataUpdatedAt)}
           title={Number.isFinite(lat) ? `ISS over ${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"}` : "ISS position connecting"}
           detail={Number.isFinite(lon) ? `${Math.abs(lon).toFixed(1)}° ${lon >= 0 ? "E" : "W"} · orbital telemetry is live` : "Waiting for orbital telemetry."}

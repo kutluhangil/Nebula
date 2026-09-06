@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { Sparkles, RefreshCw } from "lucide-react";
 
 interface AIReportProps {
-  earthquakeCount: number;
+  /** Undefined until the earthquake feed answers. */
+  earthquakeCount: number | undefined;
 }
 
 export function AIReport({ earthquakeCount }: AIReportProps) {
@@ -20,8 +21,15 @@ export function AIReport({ earthquakeCount }: AIReportProps) {
       if (!res.ok) throw new Error("Failed to fetch report");
       return res.json();
     },
+    // The report is written around the earthquake count, so it waits for the
+    // real one rather than generating a briefing about zero events.
+    enabled: earthquakeCount !== undefined,
     staleTime: 1000 * 60 * 60 * 2, // 2 hours
   });
+
+  // A disabled query is pending but not loading, so the wait for the count is
+  // part of what the card reports as "generating".
+  const isGenerating = earthquakeCount === undefined || isLoading;
 
   return (
     <motion.div
@@ -39,13 +47,13 @@ export function AIReport({ earthquakeCount }: AIReportProps) {
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-[var(--text-faint)] text-xs">
-          <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
-          {isLoading ? "Generating..." : "Auto-generated"}
+          <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
+          {isGenerating ? "Generating..." : "Auto-generated"}
         </div>
       </div>
 
       <p className="text-[var(--text-faint)] text-sm leading-relaxed">
-        {isLoading
+        {isGenerating
           ? "Connecting to NEBULA Core. Analyzing orbital data, seismic activity, and solar parameters..."
           : isError
           ? "Unable to generate AI report at this time. Please check your connection."
