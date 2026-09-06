@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -23,6 +24,11 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ article, index }: NewsCardProps) {
+  // Feed entries regularly point at images the publisher has since removed.
+  // Without this the browser renders the alt text over an empty box, which
+  // reads as a broken page rather than an article that simply has no artwork.
+  const [imageFailed, setImageFailed] = useState(false);
+
   return (
     <motion.a
       href={article.url}
@@ -34,13 +40,14 @@ export function NewsCard({ article, index }: NewsCardProps) {
       className="glass-panel group overflow-hidden flex flex-col h-full"
     >
       <div className="relative h-48 md:h-56 w-full overflow-hidden bg-[var(--surface)]">
-        {article.image_url ? (
+        {article.image_url && !imageFailed ? (
           <Image
             src={article.image_url}
             alt={article.title}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
             unoptimized
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[var(--text-faint)]">

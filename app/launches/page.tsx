@@ -13,6 +13,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import { fetchJson } from "@/lib/api-client";
+import { useNow } from "@/hooks/use-now";
 
 interface Launch {
   id: string;
@@ -84,7 +85,24 @@ export default function LaunchesPage() {
     staleTime: 1000 * 60 * 30,
   });
 
-  const nextLaunch = data?.upcoming?.[0];
+  // Launch Library keeps a mission in its upcoming feed until a human confirms
+  // the outcome, so the first entry is regularly a launch whose window already
+  // opened. Counting down to it renders four zeros under a "Next Launch"
+  // badge, which claims a launch is imminent when it already flew.
+  const now = useNow();
+  const upcoming = data?.upcoming ?? [];
+  const scheduled = upcoming.find((launch) =>
+    now === null ? false : new Date(launch.date_utc).getTime() > now,
+  );
+  // Before the clock ticks, the feed's own order is the only ordering there is.
+  const nextLaunch = scheduled ?? upcoming[0];
+  const windowOpened =
+    nextLaunch !== undefined &&
+    now !== null &&
+    new Date(nextLaunch.date_utc).getTime() <= now;
+  const remainingLaunches = upcoming.filter(
+    (launch) => launch.id !== nextLaunch?.id,
+  );
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4 md:px-6 lg:px-8">
@@ -134,7 +152,7 @@ export default function LaunchesPage() {
           >
             <div className="flex items-center gap-2 mb-4">
               <div className="badge-live">
-                <span>Next Launch</span>
+                <span>{windowOpened ? "Launch window open" : "Next Launch"}</span>
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
@@ -161,7 +179,14 @@ export default function LaunchesPage() {
                     addSuffix: true,
                   })}
                 </div>
-                <Countdown targetDate={nextLaunch.date_utc} />
+                {windowOpened ? (
+                  <p className="text-[var(--text-dim)] text-sm max-w-md">
+                    The launch window has opened. Launch Library 2 has not
+                    published an outcome for this mission yet.
+                  </p>
+                ) : (
+                  <Countdown targetDate={nextLaunch.date_utc} />
+                )}
               </div>
               {nextLaunch.links?.webcast && (
                 <a
@@ -179,14 +204,14 @@ export default function LaunchesPage() {
         )}
 
         {/* Upcoming list */}
-        {data?.upcoming && data.upcoming.length > 1 && (
+        {remainingLaunches.length > 0 && (
           <div className="mb-6">
             <h2 className="text-[var(--text-dim)] font-semibold text-sm mb-3 flex items-center gap-2">
               <Clock className="w-4 h-4 text-violet-400" />
               Upcoming Missions
             </h2>
             <div className="space-y-2">
-              {data.upcoming.slice(1).map((launch, i) => (
+              {remainingLaunches.map((launch, i) => (
                 <motion.div
                   key={launch.id}
                   initial={{ opacity: 0, x: -20 }}

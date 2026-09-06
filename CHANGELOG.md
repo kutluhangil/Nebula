@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-07 — Visible-defect pass before the design system work
+
+### Fixed
+- The seismic map's base layer came from CARTO's `dark_all` tiles, which now answer key-less requests with 200 and a tile that reads "API KEY REQUIRED · carto.com/basemaps/apikey" diagonally across the cartography. Every tile on the Earth page carried that stamp. The map reads Esri's key-free Dark Gray Canvas instead, with its reference layer for place names, and credits Esri and OpenStreetMap.
+- News cards rendered the article title as alt text over an empty box whenever the publisher had removed the artwork the feed still links to. The image now falls back to the existing placeholder when it fails to load.
+- Launch Library keeps a mission in its upcoming feed until a human confirms the outcome, so the first entry is regularly a launch that already flew. The launches hero counted down to it and printed four zeros under a "Next Launch" badge. Both the page and the dashboard card now pick the first genuinely future mission, and say "Launch window open · outcome not published yet" when none is left.
+
+### Added
+- `useNow`, a shared clock read through `useSyncExternalStore`, so the launch surfaces can compare against the current time without calling `Date.now()` during render.
+- Four regression tests: the base layer serves real tiles from a provider that needs no key, a dead article image falls back to the placeholder, the launch hero skips a mission whose window opened, and it says so rather than counting down to zero. All four fail against the previous code.
+
 ## 2026-09-06 — Data-accuracy audit: fabricated constants and silent failures
 
 ### Fixed

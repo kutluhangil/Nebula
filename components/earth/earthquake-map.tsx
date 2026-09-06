@@ -43,14 +43,24 @@ export default function EarthquakeMap({
         style={{ height: "100%", width: "100%", background: "#0a0f1e" }}
         zoomControl={true}
       >
-        {/* CARTO's basemaps are built on OpenStreetMap data; both require
-            attribution, and this app credits every other source it reads. */}
+        {/* CARTO's dark basemap now stamps "API KEY REQUIRED" across every
+            tile it serves without a key, so the map reads from Esri's
+            key-free Dark Gray Canvas instead. Esri builds it on OpenStreetMap
+            data; both require attribution, and this app credits every other
+            source it reads. */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
           attribution={
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-            '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+            'Tiles &copy; <a href="https://www.esri.com/">Esri</a> — Esri, HERE, Garmin, ' +
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }
+        />
+        {/* Esri splits its dark canvas in two: the base carries geometry, the
+            reference layer carries place names. Without this the map is
+            unlabelled at the zoom levels this view opens on. */}
+        <TileLayer
+          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          attribution=""
         />
         {earthquakes.map((quake) => {
           const [lon, lat] = quake.geometry.coordinates;

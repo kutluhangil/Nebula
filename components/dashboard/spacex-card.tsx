@@ -7,6 +7,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { useState, useEffect } from "react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { fetchJson } from "@/lib/api-client";
+import { useNow } from "@/hooks/use-now";
 
 interface Launch {
   id: string;
@@ -61,6 +62,7 @@ export function SpaceXCard() {
     queryFn: () => fetchJson("/api/spacex"),
     staleTime: 1000 * 60 * 30,
   });
+  const now = useNow();
 
   if (isLoading) {
     return <div className="glass-panel h-72 skeleton" aria-busy="true" />;
@@ -89,7 +91,22 @@ export function SpaceXCard() {
   }
 
   const latest = data?.latest;
-  const nextLaunch = data?.upcoming?.[0];
+  // Launch Library keeps a mission in its upcoming feed until a human confirms
+  // the outcome, so the first entry is regularly a launch that already flew.
+  // Prefer the first genuinely future mission and say so when none is left.
+  const upcoming = data?.upcoming ?? [];
+  const scheduled = upcoming.find((launch) =>
+    now === null ? false : new Date(launch.date_utc).getTime() > now,
+  );
+  // Before the clock ticks, the feed's own order is the only ordering there is.
+  const nextLaunch = scheduled ?? upcoming[0];
+  const windowOpened =
+    nextLaunch !== undefined &&
+    now !== null &&
+    new Date(nextLaunch.date_utc).getTime() <= now;
+  const remainingLaunches = upcoming.filter(
+    (launch) => launch.id !== nextLaunch?.id,
+  );
 
   return (
     <motion.div
@@ -164,7 +181,9 @@ export function SpaceXCard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs text-[var(--text-faint)] uppercase tracking-widest">Next Launch</span>
+              <span className="text-xs text-[var(--text-faint)] uppercase tracking-widest">
+                {windowOpened ? "Launch window open" : "Next Launch"}
+              </span>
             </div>
             <FavoriteButton 
               item={{
@@ -201,18 +220,24 @@ export function SpaceXCard() {
                   addSuffix: true,
                 })}
               </div>
-              <CountdownTimer targetDate={nextLaunch.date_utc} />
+              {windowOpened ? (
+                <p className="text-[var(--text-dim)] text-xs">
+                  Window open · outcome not published yet
+                </p>
+              ) : (
+                <CountdownTimer targetDate={nextLaunch.date_utc} />
+              )}
             </div>
           </div>
         </div>
       )}
 
       {/* Upcoming list */}
-      {data?.upcoming && data.upcoming.length > 1 && (
+      {remainingLaunches.length > 0 && (
         <>
           <div className="section-divider" />
           <div className="space-y-1">
-            {data.upcoming.slice(1, 4).map((launch) => (
+            {remainingLaunches.slice(0, 3).map((launch) => (
               <div
                 key={launch.id}
                 className="flex items-center justify-between py-1.5 text-xs"

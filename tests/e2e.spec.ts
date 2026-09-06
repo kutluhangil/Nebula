@@ -638,7 +638,7 @@ test.describe("runtime origin", () => {
 });
 
 test.describe("map attribution", () => {
-  test("credits OpenStreetMap and CARTO for the base layer", async ({
+  test("credits Esri and OpenStreetMap for the base layer", async ({
     page,
   }) => {
     await page.goto("/earth");
@@ -647,7 +647,125 @@ test.describe("map attribution", () => {
     // attribution string, which both licences require.
     const attribution = page.locator(".leaflet-control-attribution");
     await expect(attribution).toBeVisible();
+    await expect(attribution).toContainText("Esri");
     await expect(attribution).toContainText("OpenStreetMap");
-    await expect(attribution).toContainText("CARTO");
+  });
+
+  test("the base layer serves real tiles instead of a key-required stamp", async ({
+    page,
+  }) => {
+    // CARTO's dark basemap answers key-less requests with 200 and a tile that
+    // reads "API KEY REQUIRED" across the whole image, so a status check alone
+    // does not catch it. Assert the map reads from a provider that serves the
+    // real cartography without a key.
+    const tiles: { url: string; status: number }[] = [];
+    page.on("response", (response) => {
+      const url = response.url();
+      if (/arcgisonline\.com|cartocdn\.com|tile\.openstreetmap\.org/.test(url)) {
+        tiles.push({ url, status: response.status() });
+      }
+    });
+
+    await page.goto("/earth");
+    await page.waitForSelector(".leaflet-tile-loaded", { timeout: 30_000 });
+
+    expect(tiles.length).toBeGreaterThan(0);
+    expect(tiles.every((tile) => tile.status === 200)).toBe(true);
+    expect(tiles.some((tile) => tile.url.includes("cartocdn.com"))).toBe(false);
+  });
+});
+
+/**
+ * Feed entries regularly point at images their publisher has removed. The card
+ * rendered the alt text over an empty box, which reads as a broken page.
+ */
+test.describe("news imagery", () => {
+  test("an article whose image 404s falls back to the placeholder", async ({
+    page,
+  }) => {
+    const deadImage = "https://www.nasa.gov/removed-by-publisher.png";
+
+    // The grid paginates, so the route carries an offset query string.
+    await stubRoute(page, "/api/news*", {
+      count: 1,
+      nextOffset: null,
+      results: [
+        {
+          id: 1,
+          title: "Article with a dead image",
+          url: "https://example.com/article",
+          image_url: deadImage,
+          news_site: "NASA",
+          summary: "The publisher removed the artwork for this article.",
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          featured: false,
+        },
+      ],
+    });
+    await page.route(deadImage, (route) => route.fulfill({ status: 404 }));
+
+    await page.goto("/news");
+    await expect(
+      page.getByRole("heading", { name: "Article with a dead image" })
+    ).toBeVisible();
+
+    // The <img> must be gone once it errors, otherwise the browser paints the
+    // alt text across the card.
+    await expect(
+      page.getByRole("img", { name: "Article with a dead image" })
+    ).toHaveCount(0);
+  });
+});
+
+/**
+ * Launch Library keeps a mission in its upcoming feed until a human confirms
+ * the outcome, so upcoming[0] is regularly a launch that already flew. The
+ * hero counted down to it and printed four zeros under "Next Launch".
+ */
+test.describe("next launch", () => {
+  const launch = (id: string, offsetMs: number) => ({
+    id,
+    name: `Falcon 9 | ${id}`,
+    date_utc: new Date(Date.now() + offsetMs).toISOString(),
+    success: null,
+    details: null,
+    links: { patch: { small: null, large: null }, webcast: null, article: null },
+    rocket: "Falcon 9",
+  });
+
+  test("skips a mission whose window already opened", async ({ page }) => {
+    await stubRoute(page, "/api/spacex", {
+      latest: null,
+      upcoming: [launch("flown", -2 * 60 * 60 * 1000), launch("scheduled", 3 * 24 * 60 * 60 * 1000)],
+    });
+
+    await page.goto("/launches");
+
+    await expect(
+      page.getByRole("heading", { name: "Falcon 9 | scheduled" })
+    ).toBeVisible();
+    await expect(page.getByText("Next Launch", { exact: true })).toBeVisible();
+    // The flown mission belongs in the list below, never in the countdown hero.
+    await expect(
+      page.getByRole("heading", { name: "Falcon 9 | flown" })
+    ).toHaveCount(0);
+  });
+
+  test("says the window is open instead of counting down to zero", async ({
+    page,
+  }) => {
+    await stubRoute(page, "/api/spacex", {
+      latest: null,
+      upcoming: [launch("flown", -2 * 60 * 60 * 1000)],
+    });
+
+    await page.goto("/launches");
+
+    await expect(
+      page.getByText("Launch window open", { exact: true })
+    ).toBeVisible();
+    await expect(page.getByText("Next Launch", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("DAYS", { exact: true })).toHaveCount(0);
   });
 });
