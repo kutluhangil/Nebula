@@ -10,6 +10,7 @@ const PROBES = [
   { id: "noaa", label: "NOAA Space Weather", path: "/api/solar", href: "https://www.swpc.noaa.gov/" },
   { id: "launch", label: "Launch Library 2", path: "/api/spacex", href: "https://thespacedevs.com/llapi" },
   { id: "eonet", label: "NASA EONET", path: "/api/events?category=wildfires", href: "https://eonet.gsfc.nasa.gov/" },
+  { id: "news", label: "Spaceflight News", path: "/api/news", href: "https://spaceflightnewsapi.net/" },
 ] as const;
 
 const PROBE_TIMEOUT_MS = 8000;

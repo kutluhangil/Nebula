@@ -396,3 +396,73 @@ test.describe("stats bar", () => {
     await expect(tile).toContainText("—");
   });
 });
+
+test.describe("space news", () => {
+  test("reads through the app's own route, not the upstream directly", async ({
+    page,
+  }) => {
+    const offOrigin: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("spaceflightnewsapi.net")) {
+        offOrigin.push(request.url());
+      }
+    });
+
+    await page.goto("/news");
+    await expect(page.locator("article, a.glass-panel").first()).toBeVisible();
+
+    // The grid used to fetch api.spaceflightnewsapi.net straight from the
+    // browser, bypassing the timeout, error shape and health probe.
+    expect(offOrigin).toEqual([]);
+  });
+
+  test("shows an error state with retry when the feed fails", async ({
+    page,
+  }) => {
+    // The trailing wildcard matters: the grid requests /api/news?offset=0.
+    await breakRoute(page, "/api/news*");
+    await page.goto("/news");
+
+    await expect(
+      page.getByText(/Space news is unavailable right now/i)
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /retry/i })).toBeVisible();
+  });
+});
+
+test.describe("space weather colours", () => {
+  test("the gauge changes colour on NOAA's storm boundary, not one step early", async ({
+    page,
+  }) => {
+    const readGaugeColour = async (kpIndex: number) => {
+      await page.route("**/api/solar", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            kpIndex,
+            observedAt: "2026-01-01T00:00:00",
+            auroraProbability: 10,
+            auroraObservedAt: "2026-01-01T00:00:00",
+            geoStorms: 0,
+            solarFlares: 0,
+            source: "NOAA Space Weather Prediction Center",
+          }),
+        })
+      );
+      await page.goto("/dashboard");
+      // Anchored to the gauge's own caption; a bare "4" matches elsewhere.
+      const value = page
+        .getByText("KP Index", { exact: true })
+        .locator("xpath=preceding-sibling::div[1]");
+      await expect(value).toHaveText(String(kpIndex));
+      return value.evaluate((el) => getComputedStyle(el).color);
+    };
+
+    // Kp 4 is "Active" and Kp 5 is the first storm level, so the colour has to
+    // change between them — it used to escalate a step early, at 3 and 4.
+    const active = await readGaugeColour(4);
+    const minorStorm = await readGaugeColour(5);
+    expect(active).not.toBe(minorStorm);
+  });
+});

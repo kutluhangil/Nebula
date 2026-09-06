@@ -224,3 +224,45 @@ test.describe("health", () => {
     }
   });
 })
+
+test.describe("space news", () => {
+  test("proxies the feed with a pageable offset contract", async ({
+    request,
+  }) => {
+    const first = await request.get("/api/news");
+    expect(first.status()).toBe(200);
+
+    const page = await first.json();
+    expect(Array.isArray(page.results)).toBe(true);
+    expect(page.results.length).toBeGreaterThan(0);
+    // The client used to page on an absolute upstream URL. The contract is now
+    // an offset this route rebuilds the upstream request from.
+    expect(typeof page.nextOffset).toBe("number");
+    expect(page.results[0]).toHaveProperty("title");
+    expect(page.results[0]).toHaveProperty("news_site");
+
+    const second = await request.get(`/api/news?offset=${page.nextOffset}`);
+    expect(second.status()).toBe(200);
+    const nextPage = await second.json();
+    const firstIds = page.results.map((a: { id: number }) => a.id);
+    const nextIds = nextPage.results.map((a: { id: number }) => a.id);
+    expect(nextIds.filter((id: number) => firstIds.includes(id))).toEqual([]);
+  });
+
+  test("rejects an out-of-range offset", async ({ request }) => {
+    const response = await request.get("/api/news?offset=-5");
+    expect(response.status()).toBe(400);
+    expect((await response.json()).error).toContain("offset");
+  });
+});
+
+test.describe("health", () => {
+  test("probes the news feed alongside the other sources", async ({
+    request,
+  }) => {
+    const body = await (await request.get("/api/health")).json();
+    // News was the one feed the browser called directly, so it was invisible
+    // to the status list in the footer.
+    expect(body.sources.map((s: { id: string }) => s.id)).toContain("news");
+  });
+});

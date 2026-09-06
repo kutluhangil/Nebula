@@ -238,16 +238,21 @@ function ISSMarker({
 
 /* ------------------------------- the globe -------------------------------- */
 
+const GLOBE_TEXTURE_BASE =
+  "https://unpkg.com/three-globe@2.45.2/example/img";
+
 function Globe({ reduce }: { reduce: boolean }) {
   const group = useRef<THREE.Group>(null);
   const satellitesRef = useRef<THREE.Points>(null);
   const colors = useThemeColors();
   
-  // High-res public textures for realistic Earth
+  // High-res public textures for realistic Earth. The version is pinned: the
+  // unversioned unpkg path follows whatever three-globe publishes next, so a
+  // release that renames or drops these files would silently break the hero.
   const [colorMap, bumpMap, specularMap] = useTexture([
-    "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-    "https://unpkg.com/three-globe/example/img/earth-topology.png",
-    "https://unpkg.com/three-globe/example/img/earth-water.png",
+    `${GLOBE_TEXTURE_BASE}/earth-blue-marble.jpg`,
+    `${GLOBE_TEXTURE_BASE}/earth-topology.png`,
+    `${GLOBE_TEXTURE_BASE}/earth-water.png`,
   ]);
 
   const { positions: satPositions, colors: satColors } = useSatellitePoints();

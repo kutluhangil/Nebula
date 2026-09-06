@@ -1,15 +1,16 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Newspaper } from "lucide-react";
 import { NewsCard, SpaceflightArticle } from "./news-card";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
+import { fetchJson } from "@/lib/api-client";
 
 interface NewsResponse {
   count: number;
-  next: string | null;
-  previous: string | null;
+  /** Offset for the next page, or null on the last one. */
+  nextOffset: number | null;
   results: SpaceflightArticle[];
 }
 
@@ -18,19 +19,21 @@ export function NewsGrid() {
 
   const {
     data,
+    error,
+    refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     status,
   } = useInfiniteQuery({
     queryKey: ["space-news"],
-    queryFn: async ({ pageParam = "https://api.spaceflightnewsapi.net/v4/articles/?limit=12" }) => {
-      const res = await fetch(pageParam);
-      if (!res.ok) throw new Error("Network response was not ok");
-      return res.json() as Promise<NewsResponse>;
-    },
-    initialPageParam: "https://api.spaceflightnewsapi.net/v4/articles/?limit=12",
-    getNextPageParam: (lastPage) => lastPage.next,
+    // Read through this app's own route rather than calling the upstream from
+    // the browser, so news gets the same timeout, error shape and health probe
+    // as every other source.
+    queryFn: ({ pageParam }) =>
+      fetchJson<NewsResponse>(`/api/news?offset=${pageParam}`),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
   });
 
   useEffect(() => {
@@ -49,8 +52,20 @@ export function NewsGrid() {
 
   if (status === "error") {
     return (
-      <div className="w-full text-center py-20 text-[var(--text-dim)]">
-        Failed to load news. Please try again later.
+      <div className="glass-panel p-8 flex flex-col items-center justify-center gap-3 text-center">
+        <Newspaper className="w-5 h-5 text-[var(--text-faint)]" />
+        <p className="text-[var(--text-dim)] text-sm">
+          Space news is unavailable right now.
+        </p>
+        <p className="text-[var(--text-faint)] text-xs max-w-md">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }

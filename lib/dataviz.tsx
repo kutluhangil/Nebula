@@ -24,11 +24,15 @@ export function magnitudeColor(mag: number): string {
   return SEVERITY_RAMP[0];
 }
 
-/** Planetary K-index (0–9) → severity colour. */
+/**
+ * Planetary K-index (0–9) → severity colour, on NOAA's own band boundaries so
+ * the gauge's colour and its written label change at the same value: quiet and
+ * unsettled below Kp 4, active at 4, a G1–G2 storm at 5–6, and G3 upward at 7.
+ */
 export function kpColor(kp: number): string {
-  if (kp >= 6) return SEVERITY_RAMP[3];
-  if (kp >= 4) return SEVERITY_RAMP[2];
-  if (kp >= 3) return SEVERITY_RAMP[1];
+  if (kp >= 7) return SEVERITY_RAMP[3];
+  if (kp >= 5) return SEVERITY_RAMP[2];
+  if (kp >= 4) return SEVERITY_RAMP[1];
   return SEVERITY_RAMP[0];
 }
 

@@ -11,8 +11,13 @@
 - The live briefing credited ISS telemetry to "Open Notify", a source the app stopped using when the route moved to wheretheiss.at.
 - The weather widget returned `null` on failure, vanishing from the dashboard with no explanation. It now shows an error state with a retry, matching every other card.
 
+### Changed
+- Space news reads through a new `/api/news` route instead of calling `api.spaceflightnewsapi.net` from the browser. It was the one feed without the 10s upstream timeout, the standard error shape or a health probe, and it now has all three plus an error state with retry. Pagination moved from an absolute upstream URL to an offset the route validates.
+- The Kp gauge's colour changes on NOAA's own band boundaries — active at Kp 4, storm at Kp 5, G3 upward at Kp 7 — so the colour and the written label now escalate at the same value.
+- The Earth textures in the 3D globe pin `three-globe@2.45.2`; the unversioned unpkg path followed whatever was published next.
+
 ### Internal
-- Seven regression tests added (36 to 43), each verified to fail against the behaviour it replaces.
+- Thirteen regression tests added (36 to 49), each verified to fail against the behaviour it replaces.
 - Removed four unused dependencies: `axios`, `clsx`, `tailwind-merge` and `openai` (the report route calls the API over plain `fetch`).
 - `npm audit` reports zero vulnerabilities, down from one high (browserslist) and one moderate (fflate, reachable in production via three-stdlib).
 
