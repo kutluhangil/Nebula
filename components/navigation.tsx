@@ -15,12 +15,13 @@ import {
   Rocket,
   Star,
   Newspaper,
+  Home,
 } from "lucide-react";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navItems = [
-  { href: "/", label: "Home", icon: Star },
+  { href: "/", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: Globe },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/space", label: "Space", icon: Satellite },

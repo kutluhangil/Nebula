@@ -42,11 +42,15 @@ export default function EarthquakeMap({
         zoom={2}
         style={{ height: "100%", width: "100%", background: "#0a0f1e" }}
         zoomControl={true}
-        attributionControl={false}
       >
+        {/* CARTO's basemaps are built on OpenStreetMap data; both require
+            attribution, and this app credits every other source it reads. */}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution=""
+          attribution={
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+            '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+          }
         />
         {earthquakes.map((quake) => {
           const [lon, lat] = quake.geometry.coordinates;

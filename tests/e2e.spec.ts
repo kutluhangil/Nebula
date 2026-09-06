@@ -601,3 +601,53 @@ test.describe("footer status", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("runtime origin", () => {
+  test("no page loads its own assets from a package CDN", async ({ page }) => {
+    // Upstream media (NASA's APOD image, launch patches, Leaflet's map tiles)
+    // is the data itself and legitimately off-origin. A package CDN serving
+    // this app's own assets is not: it is an unmonitored dependency in the
+    // critical path, which is what the globe's Earth textures used to be.
+    const PACKAGE_CDNS = /unpkg\.com|jsdelivr\.net|cdnjs\.cloudflare\.com|esm\.sh|skypack\.dev/;
+    const offending: string[] = [];
+    page.on("request", (request) => {
+      if (PACKAGE_CDNS.test(request.url())) offending.push(request.url());
+    });
+
+    for (const path of ["/", "/dashboard", "/earth", "/news"]) {
+      await page.goto(path);
+      await page.waitForTimeout(1500);
+    }
+
+    expect(offending).toEqual([]);
+  });
+
+  test("the globe draws from self-hosted textures", async ({ page }) => {
+    const textures: number[] = [];
+    page.on("response", (response) => {
+      if (response.url().includes("/textures/")) textures.push(response.status());
+    });
+
+    await page.goto("/");
+    await expect(page.locator("canvas").first()).toBeVisible();
+    await page.waitForTimeout(3000);
+
+    expect(textures.length).toBe(3);
+    expect(textures.every((status) => status === 200)).toBe(true);
+  });
+});
+
+test.describe("map attribution", () => {
+  test("credits OpenStreetMap and CARTO for the base layer", async ({
+    page,
+  }) => {
+    await page.goto("/earth");
+
+    // The base layer shipped with attributionControl disabled and an empty
+    // attribution string, which both licences require.
+    const attribution = page.locator(".leaflet-control-attribution");
+    await expect(attribution).toBeVisible();
+    await expect(attribution).toContainText("OpenStreetMap");
+    await expect(attribution).toContainText("CARTO");
+  });
+});

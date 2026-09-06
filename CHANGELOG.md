@@ -26,8 +26,24 @@
 - The launches page credited the "SpaceX API" (api.spacexdata.com, deprecated and offline) and the space page credited "Open Notify"; both feeds moved to Launch Library 2 and wheretheiss.at respectively.
 - The launches page's local types claimed an `upcoming` field the route never sends and a non-null `latest` the route may return as null.
 
+### Fixed (third pass — metadata, licensing and runtime dependencies)
+- Every page is a client component and so could not export metadata, leaving all seven routes with the root layout's title, description and — worse — its canonical URL of "/". That told crawlers each route duplicated the home page, cancelling out the sitemap the app publishes. Each route now carries its own metadata via a server layout; favorites is explicitly noindex, matching its absence from the sitemap.
+- The seismic map's base layer shipped with `attributionControl={false}` and an empty attribution string. CARTO's basemaps are built on OpenStreetMap data and both licences require credit — in an app that names every other source it reads.
+- `next.config.ts` allowed remote images from imgur and wikimedia, hosts this app never reads; they were left over from the retired r-spacex feed. Every `<Image>` here passes `unoptimized`, so the list was dead config that would have become live permissions the moment one did not.
+- Home and Favorites shared the same nav icon, so neither was identifiable by it.
+
+### Changed
+- The globe's Earth textures are served from `/textures` instead of unpkg — the last third-party runtime dependency in the landing page's critical path, and the only asset that did not go through a route with a timeout and a health probe. The colour map is downscaled from 4096px to 2048px, which a 440px globe cannot distinguish: 2.2 MB to 1.2 MB.
+
+### Fixed (documentation and setup)
+- `.env.example` did not exist, so the README's `cp .env.example .env.local` setup step failed for anyone cloning the repo. Added, documenting all three variables and why each is optional — and `.gitignore`'s blanket `.env*` now excepts it, which would otherwise have kept it untrackable.
+- The README told contributors to `cd Nebula/Nebula`; the repository root is `Nebula` itself.
+- The source table omitted the Spaceflight News API, now a first-class feed with its own route and health probe.
+- The design notes advertised a starfield animation that no longer exists and described the hero globe as canvas-rendered rather than WebGL.
+
 ### Internal
-- Twenty-two regression tests added (36 to 58), each verified to fail against the behaviour it replaces.
+- Thirty-two regression tests added (36 to 68), each verified to fail against the behaviour it replaces.
+- Removed dead code found by the audit: the unreferenced `StarsBackground` component and five unused `create-next-app` template SVGs.
 - Removed four unused dependencies: `axios`, `clsx`, `tailwind-merge` and `openai` (the report route calls the API over plain `fetch`).
 - `npm audit` reports zero vulnerabilities, down from one high (browserslist) and one moderate (fflate, reachable in production via three-stdlib).
 

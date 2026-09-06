@@ -6,7 +6,7 @@
 
 ## Features
 
-- 🌍 **Rotating Earth** — Animated canvas globe on the hero
+- 🌍 **Rotating Earth** — WebGL globe on the hero, textures served from this origin
 - 🛸 **ISS Live Tracker** — Measured position, altitude, velocity and eclipse state, plus next visible pass for your location
 - 🚀 **SpaceX Launches** — Latest/upcoming launches with countdown timers
 - 🌋 **Earthquake Monitor** — USGS M4.0+ events with interactive Leaflet map
@@ -15,6 +15,7 @@
 - ☄️ **Near-Earth Asteroids** — NASA NEO hazardous asteroid tracking
 - 📸 **NASA APOD** — Astronomy Picture of the Day with fullscreen mode
 - 🤖 **AI Daily Report** — Dynamic planet intelligence briefing
+- 📰 **Space News** — Aerospace reporting, proxied and health-monitored like every other feed
 - 🗺️ **Unified Timeline** — All events in chronological order
 
 ## Tech Stack
@@ -39,13 +40,14 @@
 | wheretheiss.at | ISS position, telemetry & TLE | 5sec |
 | NOAA SWPC | Space weather (Kp, aurora, storms, flares) | 5min |
 | NASA EONET | Wildfires, volcanoes, severe storms | 30min |
+| Spaceflight News | Aerospace reporting | 5min |
 | Open-Meteo | Weather | Hourly |
 
 ## Setup
 
 ```bash
 git clone https://github.com/kutluhangil/Nebula.git
-cd Nebula/Nebula
+cd Nebula
 npm install
 
 # Copy environment variables
@@ -76,6 +78,10 @@ npm run typecheck   # tsc --noEmit
 npm test            # Playwright API contract + end-to-end suite
 ```
 
+Every card and page reports its source failing by name, with a retry, rather
+than rendering an empty or zeroed state — a dead feed must never read as "no
+earthquakes this week". The suite asserts this for each surface.
+
 The test suite runs against the live upstream APIs on purpose — the bugs worth
 catching here are contract drift and swallowed errors, neither of which a mocked
 upstream would surface. A source being unreachable is reported as a skip rather
@@ -86,7 +92,8 @@ and the full suite on every push and pull request.
 
 - Dark mode first
 - Glassmorphism cards
-- Canvas-rendered animations (stars, Earth, ISS)
+- WebGL globe on the hero, canvas-rendered ISS tracker
+- Earth textures self-hosted under `/textures` — no third-party CDN at runtime
 - 60fps smooth transitions
 - Mobile responsive
 

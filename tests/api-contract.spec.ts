@@ -266,3 +266,42 @@ test.describe("health", () => {
     expect(body.sources.map((s: { id: string }) => s.id)).toContain("news");
   });
 });
+
+test.describe("page metadata", () => {
+  // Every page is a client component and so cannot export metadata. Without a
+  // per-route layout they all inherited the root's canonical "/", telling
+  // crawlers each route duplicates the home page and cancelling out the
+  // sitemap this app publishes.
+  const ROUTES: Record<string, string> = {
+    "/dashboard": "Planet Intelligence",
+    "/earth": "Earth Intelligence",
+    "/launches": "SpaceX Launches",
+    "/timeline": "Unified Timeline",
+    "/space": "Space Observatory",
+    "/news": "Space News",
+  };
+
+  for (const [path, title] of Object.entries(ROUTES)) {
+    test(`${path} carries its own title and canonical`, async ({ request }) => {
+      const html = await (await request.get(path)).text();
+
+      expect(html).toContain(`<title>${title} · NEBULA</title>`);
+      expect(html).toMatch(
+        new RegExp(`rel="canonical" href="[^"]*${path}"`)
+      );
+    });
+  }
+
+  test("every sitemap route is canonical to itself", async ({ request }) => {
+    const sitemap = await (await request.get("/sitemap.xml")).text();
+    const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(locs.length).toBeGreaterThan(1);
+
+    for (const loc of locs) {
+      const path = new URL(loc).pathname;
+      const html = await (await request.get(path)).text();
+      const canonical = html.match(/rel="canonical" href="([^"]*)"/)?.[1];
+      expect(new URL(canonical!).pathname, `${path} canonical`).toBe(path);
+    }
+  });
+});

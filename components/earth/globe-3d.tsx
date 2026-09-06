@@ -238,8 +238,12 @@ function ISSMarker({
 
 /* ------------------------------- the globe -------------------------------- */
 
-const GLOBE_TEXTURE_BASE =
-  "https://unpkg.com/three-globe@2.45.2/example/img";
+// Served from this app's own origin. These were loaded from unpkg at runtime,
+// which put an unmonitored third-party CDN in the landing page's critical path
+// — the one remaining dependency that did not go through a route with a
+// timeout and a health probe. Sourced from three-globe@2.45.2 (MIT); the
+// colour map is downscaled from 4096px, far beyond what a 440px globe samples.
+const GLOBE_TEXTURE_BASE = "/textures";
 
 function Globe({ reduce }: { reduce: boolean }) {
   const group = useRef<THREE.Group>(null);
