@@ -25,13 +25,15 @@ export function FavoriteButton({ item }: { item: FavoriteItem }) {
         if (active) removeFavorite(item.id);
         else addFavorite(item);
       }}
-      className={`p-2 rounded-xl border backdrop-blur-sm transition-all ${
-        active 
-          ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-400" 
-          : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
+      aria-pressed={active}
+      aria-label={active ? `Remove ${item.title} from favorites` : `Save ${item.title} to favorites`}
+      className={`p-2 rounded-xl border transition-all ${
+        active
+          ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+          : "bg-[var(--surface-1)] border-[var(--border)] text-[var(--text-faint)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
       }`}
     >
-      <Star className={`w-4 h-4 ${active ? "fill-yellow-400" : ""}`} />
+      <Star className="w-4 h-4" fill={active ? "currentColor" : "none"} />
     </motion.button>
   );
 }

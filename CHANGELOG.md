@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-07 — Favorites on the design system, and the scrims
+
+### Fixed
+- The favorites page carried none of the page rhythm the rest of the app uses. With no top padding its heading rendered underneath the fixed navigation, and with no `w-full` root `main` centred it at the width of its widest child. It now uses the same `w-full pt-28 pb-24` container, eyebrow, display heading and separator as the dashboard and news pages.
+- A saved item whose image had since been removed drew alt text across an empty frame — the defect already fixed in the news grid, never carried across. The card now drops the image block when the URL fails.
+- The news card stamped a `from-black/80` scrim across the bottom of every photograph. The only element overlaid on that image is the source badge, which sits at the top and carries its own surface, so the scrim darkened the picture and bought nothing. It fades to the card surface instead, which seats the photograph on the body.
+- APOD's title and date sit on a permanently dark scrim but were painted with the theme's text tokens, so in the light theme they were near-black text on black. They are fixed light now, and the scrim was deepened to carry them.
+
+### Changed
+- The favorite button's saved state was a hardcoded yellow that had no counterpart in the token set and read poorly on the light theme. It uses the accent, which is what carries state everywhere else, and now reports its state to assistive technology with `aria-pressed` and a labelled action.
+- Favorite cards identify their kind with a glyph and a written label rather than four different icon tints — the same rule the dashboard stat tiles adopted. Cards keep their natural height; stretching a text-only card to an image card's height opened a void between its title and its timestamp.
+- APOD's failure card no longer pins itself to a fixed 20rem.
+
+### Added
+- Three regression tests over the favorites page, all failing against the previous code: the heading clears the fixed navigation (measured under reduced motion, so the navigation's entrance cannot flatter the result), the page root spans the viewport, and a saved item whose image 404s drops the broken frame.
+
 ## 2026-09-07 — Visual redesign: a design system instead of a set of card styles
 
 ### Changed

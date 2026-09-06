@@ -6,38 +6,44 @@ Sırayla değil, öncelik sırasına göre yazıldı.
 
 ---
 
-## 1. NASA API anahtarı — ENGELLEYİCİ
+## 1. NASA API anahtarı — TAMAM (yerelde)
 
-Şu an `/api/apod` ve `/api/space` rotaları **502** dönüyor. Sebep kod değil:
-NASA'nın paylaşımlı `DEMO_KEY` anahtarı IP başına saatte 30 istekle sınırlı ve
-o sınır dolu. Dashboard'da "Astronomy Picture of the Day" ve "Near-Earth
-Objects" kartları hata durumunda, footer'daki "NASA Open APIs" satırı `DOWN`
-görünüyor.
+Anahtar `.env.local` dosyasına yazıldı. `.env.local` `.gitignore` kapsamında,
+commit edilmiyor. Doğrulandı:
 
-**Yapılacak:**
+- `/api/apod` → `200`, `/api/space` → `200` (önceden ikisi de 502'ydi)
+- NASA kota başlığı: `x-ratelimit-limit: 10000` (DEMO_KEY'in saatlik 30'u değil)
+- `tests/api-contract.spec.ts` NASA sözleşme testi artık kendini atlamıyor
 
-1. https://api.nasa.gov adresine gir, formu doldur (isim + e-posta yeter,
-   ücretsiz, onay beklemiyor — anahtar anında e-postana geliyor).
-2. Proje kökünde `.env.local` dosyası oluştur:
-   ```
-   NASA_API_KEY=buraya_gelen_anahtar
-   ```
-   `.env.local` zaten `.gitignore`'da; commit edilmez.
-3. Sunucuyu temiz başlat ve doğrula:
-   ```
-   pkill -f "next start"; pkill -f "next-server"; rm -rf .next
-   npm run build && npm run start
-   curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/apod
-   curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/space
-   ```
-   İkisi de `200` dönmeli.
+**Kalan iş:** aynı anahtarı Vercel'in env store'una da girmen gerekiyor —
+aşağıdaki 2. madde. Yerel `.env.local` deploy'a taşınmaz.
 
-**Bunu yapınca ayrıca:** `tests/api-contract.spec.ts` içindeki NASA sözleşme
-testi şu an kendini atlıyor ("upstream unavailable"). Anahtar gelince o test de
-koşacak — yani test sayısı 71 geçti + 1 atlandı yerine 72 geçti olacak.
+---
 
-**Not:** Anahtarı bana verirsen `.env.local`'a ben yazarım. Anahtarı bu depoya
-veya bir commit'e asla koyma.
+## 1b. Launch Library 2 kotası — üretimde risk
+
+`/api/spacex` zaman zaman **502** dönüyor. Sebep kod değil: `ll.thespacedevs.com`
+anonim çağrıları IP başına saatte ~15 istekle sınırlıyor ve limit dolduğunda
+`429` + `retry-after` döndürüyor. Ölçülen yanıt:
+
+```
+HTTP/2 429
+retry-after: 648
+{"detail":"Request was throttled. Expected available in 648 seconds."}
+```
+
+Uygulama bunu doğru raporluyor (kart "Launch data is unavailable right now"
+diyor, footer'da `Launch Library 2 — DOWN` yazıyor), ama tek bir Vercel
+bölgesinden gelen tüm trafik aynı IP'yi paylaşacağı için üretimde bu limit
+düzenli olarak dolabilir.
+
+**Seçenekler — senin kararın:**
+
+1. https://thespacedevs.com/llapi üzerinden ücretsiz hesap açıp API anahtarı
+   almak (kota belirgin şekilde yükseliyor). Kodda `Authorization` başlığı
+   eklemek gerekir; anahtar gelirse ben yaparım.
+2. Rotanın `revalidate` süresini 1 saatten uzatmak (şu an 3600 sn).
+3. Olduğu gibi bırakmak — feed düştüğünde arayüz bunu dürüstçe söylüyor.
 
 ---
 

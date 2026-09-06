@@ -840,3 +840,80 @@ test.describe("failure surface", () => {
     await expect(detail).toBeVisible();
   });
 });
+
+/**
+ * The favorites page carried none of the page rhythm the rest of the app uses:
+ * with no top padding its heading rendered underneath the fixed navigation, and
+ * with no `w-full` the layout centred it at the width of its widest child.
+ */
+test.describe("favorites", () => {
+  const savedItem = (imageUrl?: string) => ({
+    state: {
+      favorites: [
+        {
+          id: "apod-2026-09-06",
+          type: "apod",
+          title: "Saved astronomy picture",
+          subtitle: "2026-09-06",
+          ...(imageUrl ? { imageUrl } : {}),
+          date: "2026-09-06T00:00:00Z",
+        },
+      ],
+    },
+    version: 0,
+  });
+
+  const seed = (page: Page, imageUrl?: string) =>
+    page.addInitScript((value) => {
+      localStorage.setItem("nebula-favorites", value);
+    }, JSON.stringify(savedItem(imageUrl)));
+
+  test("the heading clears the fixed navigation", async ({ page }) => {
+    // The navigation slides in on load; under reduced motion it renders at its
+    // final position immediately, so the overlap can be measured directly.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await seed(page);
+    await page.goto("/favorites");
+
+    const heading = page.getByRole("heading", { name: /your favorites/i });
+    await expect(heading).toBeVisible();
+
+    const nav = page.getByRole("navigation").first();
+    const navBox = await nav.boundingBox();
+    const headingBox = await heading.boundingBox();
+    expect(navBox).not.toBeNull();
+    expect(headingBox).not.toBeNull();
+    expect(headingBox!.y).toBeGreaterThan(navBox!.y + navBox!.height);
+  });
+
+  test("the page spans the viewport rather than shrinking to its content", async ({
+    page,
+  }) => {
+    await seed(page);
+    await page.goto("/favorites");
+
+    const width = await page
+      .locator("main > div")
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().width);
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    expect(width).toBe(viewport!.width);
+  });
+
+  test("a saved item whose image 404s drops the broken frame", async ({
+    page,
+  }) => {
+    const deadImage = "https://apod.nasa.gov/apod/image/removed.jpg";
+    await seed(page, deadImage);
+    await page.route(deadImage, (route) => route.fulfill({ status: 404 }));
+
+    await page.goto("/favorites");
+    await expect(
+      page.getByRole("heading", { name: "Saved astronomy picture" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("img", { name: "Saved astronomy picture" })
+    ).toHaveCount(0);
+  });
+});

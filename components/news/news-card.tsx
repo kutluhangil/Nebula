@@ -54,7 +54,7 @@ export function NewsCard({ article, index }: NewsCardProps) {
             <Newspaper className="w-8 h-8 opacity-50" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--surface-1)] via-transparent to-transparent" />
         
         {/* News Site Badge */}
         <div className="absolute top-4 left-4">

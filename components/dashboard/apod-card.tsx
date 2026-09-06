@@ -42,7 +42,7 @@ export function APODCard() {
   // a failed fetch is an expected state rather than an exceptional one.
   if (isError || !data?.url) {
     return (
-      <div className="glass-panel h-80 flex items-center justify-center">
+      <div className="glass-panel min-h-80 flex items-center justify-center">
         <FeedError
           title="NASA's Astronomy Picture of the Day is unavailable right now."
           error={error}
@@ -87,7 +87,7 @@ export function APODCard() {
             className="object-cover transition-transform duration-700 hover:scale-105"
             unoptimized
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
           {/* Overlay actions */}
           <div className="absolute top-3 right-3 flex gap-2">
@@ -102,10 +102,10 @@ export function APODCard() {
 
           {/* Bottom info */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h3 className="text-[var(--text)] font-bold text-lg leading-tight mb-1">
+            <h3 className="font-serif text-lg leading-tight text-white mb-1">
               {data.title}
             </h3>
-            <p className="text-[var(--text-dim)] text-xs">
+            <p className="text-xs text-white/70">
               {data.date}
               {data.copyright && ` · © ${data.copyright}`}
             </p>
