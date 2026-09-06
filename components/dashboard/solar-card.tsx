@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Zap, Sun, Activity } from "lucide-react";
 import { kpColor } from "@/lib/dataviz";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 
 // NOAA SWPC reads the planetary K index against its G storm scale: Kp 0-2 is
 // quiet, 3 unsettled, 4 active, and a geomagnetic storm only begins at Kp 5
@@ -36,47 +37,56 @@ interface SolarData {
 }
 
 function KPGauge({ value }: { value: number }) {
-  const percentage = (value / 9) * 100;
   const color = kpColor(value);
+  // NOAA reports Kp on a 0–9 integer scale, so the track is drawn as the ten
+  // steps it actually has rather than a continuous bar: the reader can see
+  // which step the planet is on and how far it is from the storm boundary.
+  const steps = Array.from({ length: 10 }, (_, i) => i);
 
   return (
     <div className="relative">
-      <div className="flex items-end justify-between mb-2">
+      <div className="flex items-end justify-between mb-3">
         <div>
           <div
-            className="tabular text-4xl font-bold font-mono"
+            className="tabular text-4xl font-mono font-medium leading-none"
             style={{ color }}
           >
             {value}
           </div>
-          <div className="text-[var(--text-faint)] text-xs">KP Index</div>
+          <div className="text-[var(--text-faint)] text-xs mt-1.5">KP Index</div>
         </div>
         <div className="text-right">
-          <div className="text-[var(--text-dim)] text-sm font-medium">
+          <div className="text-[var(--text)] text-sm font-medium">
             {KP_LEVELS[Math.min(Math.max(value, 0), KP_LEVELS.length - 1)]}
           </div>
           <div className="text-[var(--text-faint)] text-xs">Activity Level</div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 bg-[var(--surface)] rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-        />
+      <div className="flex gap-[2px]" role="img" aria-label={`Kp ${value} of 9`}>
+        {steps.map((step) => {
+          const reached = step <= value;
+          return (
+            <motion.div
+              key={step}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: step * 0.03 }}
+              className="h-2 flex-1 rounded-[2px]"
+              style={{
+                backgroundColor: reached ? kpColor(step) : "var(--surface-3)",
+              }}
+            />
+          );
+        })}
       </div>
 
-      {/* Scale */}
-      <div className="flex justify-between mt-1 text-[9px] text-[var(--text-faint)] font-mono">
-        <span>0</span>
-        <span>3</span>
-        <span>5</span>
-        <span>7</span>
-        <span>9</span>
+      {/* The storm boundary is the number that matters, so it is written on
+          the scale rather than left for the reader to count to. */}
+      <div className="flex justify-between mt-1.5 text-[9px] text-[var(--text-faint)] font-mono">
+        <span>0 quiet</span>
+        <span>5 storm</span>
+        <span>9 extreme</span>
       </div>
     </div>
   );
@@ -96,20 +106,13 @@ export function SolarCard() {
 
   if (isError || !data) {
     return (
-      <div className="glass-panel p-5 flex flex-col items-center justify-center gap-3 h-80 text-center">
-        <Zap className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          NOAA space weather is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-xs">
-          {error instanceof Error ? error.message : "Unknown error"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-        >
-          Retry
-        </button>
+      <div className="glass-panel h-80 flex items-center justify-center">
+        <FeedError
+          title="NOAA space weather is unavailable right now."
+          error={error}
+          icon={Zap}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -145,33 +148,37 @@ export function SolarCard() {
             initial={{ width: 0 }}
             animate={{ width: `${auroraProb}%` }}
             transition={{ duration: 1, delay: 0.3 }}
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+            className="h-full rounded-full bg-[var(--accent-cyan)]"
           />
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-yellow-500/5 border border-yellow-500/10 p-3">
+        <div className="inset-well p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Sun className="w-3 h-3 text-[var(--text-dim)]" />
             <span className="text-[10px] text-[var(--text-faint)] uppercase tracking-wide">
               Solar Flares
             </span>
           </div>
-          <div className="text-lg font-bold font-mono text-[var(--text-dim)]">
+          <div className="text-lg font-mono tabular font-medium text-[var(--text)]">
             {solarFlares}
           </div>
           <div className="text-[10px] text-[var(--text-faint)]">Today</div>
         </div>
-        <div className="rounded-xl bg-red-500/5 border border-red-500/10 p-3">
+        <div className="inset-well p-3">
           <div className="flex items-center gap-1.5 mb-1">
-            <Zap className="w-3 h-3 text-red-400" />
+            <Zap className="w-3 h-3 text-[var(--text-dim)]" strokeWidth={1.5} />
             <span className="text-[10px] text-[var(--text-faint)] uppercase tracking-wide">
               Geo Storms
             </span>
           </div>
-          <div className="text-lg font-bold font-mono text-red-400">
+          <div
+            className={`text-lg font-mono tabular font-medium ${
+              geoStorms > 0 ? "text-[var(--accent-red)]" : "text-[var(--text)]"
+            }`}
+          >
             {geoStorms}
           </div>
           <div className="text-[10px] text-[var(--text-faint)]">Active</div>

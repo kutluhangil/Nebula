@@ -165,7 +165,7 @@ export function Footer() {
               <h4 className="text-[var(--text)] font-medium mb-6 text-sm uppercase tracking-wider">Platform</h4>
               <ul className="space-y-4">
                 <li><Link href="/earth" className="text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors text-sm font-light">Earth Events</Link></li>
-                <li><Link href="/space" className="text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors text-sm font-light">Spaceflight News</Link></li>
+                <li><Link href="/news" className="text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors text-sm font-light">Spaceflight News</Link></li>
                 <li><Link href="/dashboard" className="text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors text-sm font-light">Live ISS Tracking</Link></li>
                 <li><Link href="/launches" className="text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors text-sm font-light">SpaceX Launches</Link></li>
                 <li><Link href="/dashboard" className="text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors text-sm font-light">Solar Weather</Link></li>

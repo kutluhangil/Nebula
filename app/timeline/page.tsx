@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { fetchJson } from "@/lib/api-client";
+import { useNow } from "@/hooks/use-now";
 
 interface TimelineEvent {
   id: string;
@@ -23,6 +24,7 @@ interface TimelineEvent {
 }
 
 export default function TimelinePage() {
+  const now = useNow();
   const earthquakes = useQuery<{
     features: Array<{
       id: string;
@@ -131,8 +133,20 @@ export default function TimelinePage() {
   // Sort all events by time (newest first)
   events.sort((a, b) => b.time.getTime() - a.time.getTime());
 
+  // One group per calendar day, in the same order as the events themselves.
+  const groups: { key: string; label: string; items: typeof events }[] = [];
+  for (const event of events) {
+    const key = format(event.time, "yyyy-MM-dd");
+    const last = groups[groups.length - 1];
+    if (last?.key === key) {
+      last.items.push(event);
+    } else {
+      groups.push({ key, label: format(event.time, "EEEE, MMM d"), items: [event] });
+    }
+  }
+
   return (
-    <div className="min-h-screen pt-20 pb-12 px-4 md:px-6 lg:px-8">
+    <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -151,29 +165,41 @@ export default function TimelinePage() {
           </p>
         </motion.div>
 
-        {/* Timeline */}
+        {/* Timeline. Twenty-five identical rows read as one undifferentiated
+            list, so events are grouped under the day they happened and the
+            day's heading stays in view while its group scrolls. */}
         <div className="relative">
           {/* Line */}
           <div className="absolute left-5 top-0 bottom-0 w-px bg-gradient-to-b from-[var(--accent)] via-[var(--border)] to-transparent opacity-60" />
 
-          <div className="space-y-3">
-            {events.map((event, i) => {
+          <div className="space-y-8">
+            {groups.map((group) => (
+              <section key={group.key}>
+                <div className="sticky top-20 z-20 mb-3 pl-12 py-1 flex items-center gap-3">
+                  <span className="eyebrow-pill">{group.label}</span>
+                  <span className="text-[var(--text-faint)] text-xs">
+                    {group.items.length} event{group.items.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {group.items.map((event, i) => {
               const Icon = event.icon;
-              const isUpcoming = event.time > new Date();
+              const isUpcoming = now !== null && event.time.getTime() > now;
 
               return (
                 <motion.div
                   key={event.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
+                  transition={{ delay: Math.min(i, 8) * 0.03 }}
                   className="relative flex items-start gap-4 pl-12"
                 >
                   {/* Icon */}
                   <div
                     className={`absolute left-3 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
                       isUpcoming
-                        ? "bg-violet-500/20 border border-violet-500/40"
+                        ? "bg-[var(--accent-soft)] border border-[var(--accent)]"
                         : "bg-[var(--bg)] border border-[var(--border)]"
                     }`}
                   >
@@ -185,17 +211,17 @@ export default function TimelinePage() {
                   {/* Card */}
                   <div
                     className={`flex-1 glass-card p-3 ${
-                      isUpcoming ? "border-violet-500/10 bg-violet-500/[0.02]" : ""
+                      isUpcoming ? "border-[var(--accent)]" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[var(--text-dim)] text-sm font-medium truncate">
+                          <span className="text-[var(--text)] text-sm font-medium truncate">
                             {event.title}
                           </span>
                           {isUpcoming && (
-                            <span className="text-[10px] text-violet-400 font-medium uppercase tracking-wide flex-shrink-0">
+                            <span className="text-[10px] text-[var(--accent)] font-medium uppercase tracking-wide flex-shrink-0">
                               Upcoming
                             </span>
                           )}
@@ -214,7 +240,10 @@ export default function TimelinePage() {
                   </div>
                 </motion.div>
               );
-            })}
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
 
           {events.length === 0 && (

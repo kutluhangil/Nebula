@@ -9,12 +9,23 @@
 import type { ReactNode } from "react";
 
 /* ---------------------------------------------------------------------------
-   Severity ramp — an ORDINAL status scale (calm → critical), not a categorical
-   palette. It is always paired with a written label (band name, Kp level), so
-   colour is never the sole encoding. Shared by the seismic map, the magnitude
-   distribution and the space-weather gauge so the three share one scale.
+   Severity ramp — a SEQUENTIAL scale (calm → critical), not a categorical
+   palette, so its steps descend in lightness as severity rises and a reader
+   ranks them without reading the legend.
+
+   The previous ramp (emerald → amber → orange → red) put #f59e0b beside
+   #f97316: ΔE 9.6 for normal vision and 6.2 under deuteranopia, so the
+   "moderate" and "strong" bands were the same colour on the map legend. These
+   steps measure ΔE 15.0 normal and 13.2 deutan at their closest pair.
+
+   Two steps sit below 3:1 against their own surface — pale amber on the light
+   theme, deep crimson on the dark one — which the palette check calls out as
+   needing relief. Every surface that uses the ramp provides it: the map
+   legend and the distribution bars carry written band names, the bars carry
+   their value, the gauge carries the NOAA level, and the map also encodes
+   magnitude as radius. Colour is never the only encoding here.
 --------------------------------------------------------------------------- */
-export const SEVERITY_RAMP = ["#10b981", "#f59e0b", "#f97316", "#ef4444"] as const;
+export const SEVERITY_RAMP = ["#ffd166", "#f2921d", "#e2483d", "#a51d3f"] as const;
 
 /** Earthquake magnitude → severity colour (kept in sync with the map legend). */
 export function magnitudeColor(mag: number): string {
@@ -68,6 +79,14 @@ export const gridProps = {
 } as const;
 
 export const cursorFill = { fill: "var(--surface-hover)" } as const;
+
+/** Axis titles: named units, so a reader never has to infer what a scale is. */
+export const axisLabel = {
+  fill: "var(--text-faint)",
+  fontSize: 10,
+  fontFamily: "var(--font-mono)",
+  letterSpacing: "0.14em",
+} as const;
 
 /** Respects the user's reduced-motion preference for chart entrance tweens. */
 export function prefersReducedMotion(): boolean {

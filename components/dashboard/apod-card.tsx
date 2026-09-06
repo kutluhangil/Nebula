@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useCallback, useState } from "react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 import { useModal } from "@/hooks/use-modal";
 
 interface APODData {
@@ -41,23 +42,15 @@ export function APODCard() {
   // a failed fetch is an expected state rather than an exceptional one.
   if (isError || !data?.url) {
     return (
-      <div className="glass-panel p-6 flex flex-col items-center justify-center gap-3 h-80 text-center">
-        <ImageOff className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          NASA&apos;s Astronomy Picture of the Day is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-sm">
-          {error instanceof Error
-            ? error.message
-            : "The APOD service returned no image for today."}
-        </p>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors disabled:opacity-50"
-        >
-          {isFetching ? "Retrying…" : "Retry"}
-        </button>
+      <div className="glass-panel h-80 flex items-center justify-center">
+        <FeedError
+          title="NASA's Astronomy Picture of the Day is unavailable right now."
+          error={error}
+          detailFallback="The APOD service returned no image for today."
+          icon={ImageOff}
+          onRetry={() => refetch()}
+          retrying={isFetching}
+        />
       </div>
     );
   }

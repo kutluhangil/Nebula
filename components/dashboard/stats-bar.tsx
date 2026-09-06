@@ -17,6 +17,17 @@ interface StatsBarProps {
   earthquakeCount: number | undefined;
 }
 
+interface Stat {
+  icon: typeof Activity;
+  /** Short enough to sit on one line at a sixth of the header width. */
+  label: string;
+  value: string | number;
+  /** Rendered a step down from the value, so "27,527" carries the weight. */
+  unit?: string;
+  /** Set only when the number itself means something is elevated. */
+  state?: "alert" | "warn";
+}
+
 export function StatsBar({ earthquakeCount }: StatsBarProps) {
   const { data: spacex } = useQuery({
     queryKey: ["spacex"],
@@ -52,58 +63,50 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       a.is_potentially_hazardous_asteroid
   ).length;
 
-  const stats = [
+  const stats: Stat[] = [
     {
       icon: Activity,
-      label: "Earthquakes (7d)",
+      label: "Quakes · 7d",
       value: earthquakeCount ?? "—",
-      color: "text-[var(--text-dim)]",
-      bg: "bg-emerald-500/5",
-      border: "border-emerald-500/10",
     },
     {
       icon: Satellite,
-      label: "ISS Speed",
-      value: iss?.velocity
-        ? `${Math.round(iss.velocity).toLocaleString()} km/h`
-        : "—",
-      color: "text-[var(--text-dim)]",
-      bg: "bg-blue-500/5",
-      border: "border-blue-500/10",
+      label: "ISS speed",
+      value: iss?.velocity ? Math.round(iss.velocity).toLocaleString() : "—",
+      unit: iss?.velocity ? "km/h" : undefined,
     },
     {
       icon: Rocket,
-      label: "Upcoming Launches",
+      label: "Launches",
       value: upcomingLaunches || "—",
-      color: "text-[var(--text-dim)]",
-      bg: "bg-violet-500/5",
-      border: "border-violet-500/10",
+      unit: upcomingLaunches ? "upcoming" : undefined,
     },
     {
       icon: AlertTriangle,
-      label: "Hazardous Asteroids",
+      label: "Hazardous",
       value: spaceData ? hazardousAsteroids : "—",
-      color: "text-[var(--text-dim)]",
-      bg: "bg-orange-500/5",
-      border: "border-orange-500/10",
+      // A count above zero is the whole point of the tile; colour it only then.
+      state: hazardousAsteroids > 0 ? "warn" : undefined,
     },
     {
       icon: Zap,
-      label: "Solar Activity",
-      value: solar ? `KP ${solar.kpIndex}` : "—",
-      color: "text-[var(--text-dim)]",
-      bg: "bg-yellow-500/5",
-      border: "border-yellow-500/10",
+      label: "Kp index",
+      value: solar ? solar.kpIndex : "—",
+      // NOAA calls Kp 5 and above a geomagnetic storm.
+      state: solar && solar.kpIndex >= 5 ? "alert" : undefined,
     },
     {
       icon: Globe,
-      label: "Aurora Probability",
-      value: solar ? `${solar.auroraProbability}%` : "—",
-      color: "text-cyan-400",
-      bg: "bg-cyan-500/5",
-      border: "border-cyan-500/10",
+      label: "Aurora",
+      value: solar ? solar.auroraProbability : "—",
+      unit: solar ? "%" : undefined,
     },
   ];
+
+  const stateColor = {
+    alert: "text-[var(--accent-red)]",
+    warn: "text-[var(--accent-amber)]",
+  } as const;
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -114,19 +117,32 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className={`rounded-xl ${stat.bg} border ${stat.border} p-3`}
+            transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+            className="inset-well px-3 py-2.5"
           >
-            <div className="flex items-center gap-1.5 mb-2">
-              <Icon className={`w-3 h-3 ${stat.color}`} />
-              <span className="text-[10px] text-[var(--text-faint)] uppercase tracking-wide truncate">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Icon
+                className="w-3 h-3 text-[var(--text-faint)] flex-shrink-0"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+              <span className="eyebrow !text-[9px] !tracking-[0.16em] truncate">
                 {stat.label}
               </span>
             </div>
-            <div
-              className={`text-lg font-bold font-mono ${stat.color}`}
-            >
-              {stat.value}
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={`font-mono tabular text-[1.0625rem] leading-none font-medium ${
+                  stat.state ? stateColor[stat.state] : "text-[var(--text)]"
+                }`}
+              >
+                {stat.value}
+              </span>
+              {stat.unit && (
+                <span className="text-[10px] text-[var(--text-faint)] font-mono">
+                  {stat.unit}
+                </span>
+              )}
             </div>
           </motion.div>
         );

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Shield } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 
 interface Asteroid {
   id: string;
@@ -42,20 +43,13 @@ export function AsteroidCard() {
   // summarised as "0 hazardous" — indistinguishable from a genuinely quiet day.
   if (isError || !data) {
     return (
-      <div className="glass-panel p-4 h-64 flex flex-col items-center justify-center gap-3 text-center">
-        <AlertTriangle className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          NASA near-Earth object data is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-xs">
-          {error instanceof Error ? error.message : "Unknown error"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-        >
-          Retry
-        </button>
+      <div className="glass-panel h-64 flex items-center justify-center">
+        <FeedError
+          title="NASA near-Earth object data is unavailable right now."
+          error={error}
+          icon={AlertTriangle}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MapPin, Gauge, ArrowUp, Eye, Sun, Satellite } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 import { useLocation } from "@/hooks/use-location";
 
 interface ISSPosition {
@@ -195,20 +196,13 @@ export function ISSTracker() {
   // render, so the card says so instead.
   if (isError || !data) {
     return (
-      <div className="glass-panel p-4 h-64 flex flex-col items-center justify-center gap-3 text-center">
-        <Satellite className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          ISS telemetry is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-xs">
-          {error instanceof Error ? error.message : "Unknown error"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-        >
-          Retry
-        </button>
+      <div className="glass-panel h-64 flex items-center justify-center">
+        <FeedError
+          title="ISS telemetry is unavailable right now."
+          error={error}
+          icon={Satellite}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

@@ -11,6 +11,7 @@ import { DepthChart } from "@/components/earth/depth-chart";
 import { MAGNITUDE_BANDS } from "@/lib/dataviz";
 import { useWatchlist, type EarthquakeThreshold } from "@/hooks/use-watchlist";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 import {
   EVENT_CATEGORIES,
   EVENT_LAYERS,
@@ -94,7 +95,7 @@ export default function EarthPage() {
   const tsunamiAlerts = quakes.filter((q) => q.properties.tsunami === 1);
 
   return (
-    <div className="min-h-screen pt-20 pb-12 px-4 md:px-6 lg:px-8">
+    <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -147,68 +148,34 @@ export default function EarthPage() {
         {/* Counting an empty list as zero events would state, on the strength of
             a failed request, that the planet recorded no earthquakes this week. */}
         {quakesFailed && (
-          <div className="mb-6 glass-card p-6 flex flex-col items-center justify-center gap-3 text-center">
-            <Activity className="w-5 h-5 text-[var(--text-faint)]" />
-            <p className="text-[var(--text-dim)] text-sm">
-              USGS seismic data is unavailable right now.
-            </p>
-            <p className="text-[var(--text-faint)] text-xs max-w-md">
-              {quakesError instanceof Error
-                ? quakesError.message
-                : "Unknown error"}
-            </p>
-            <button
-              onClick={() => refetchQuakes()}
-              className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-            >
-              Retry
-            </button>
+          <div className="mb-6 glass-card">
+            <FeedError
+              title="USGS seismic data is unavailable right now."
+              error={quakesError}
+              icon={Activity}
+              onRetry={() => refetchQuakes()}
+            />
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {/* Stats. The surface stays neutral; colour is reserved for the two
+            counts that actually escalate, so a busy week reads at a glance. */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[
-            {
-              label: "Total Events",
-              value: quakes.length,
-              color: "text-[var(--text-dim)]",
-              bg: "bg-[var(--surface)]",
-              border: "border-[var(--border)]",
-            },
-            {
-              label: "Major (M6+)",
-              value: major.length,
-              color: "text-red-400",
-              bg: "bg-red-500/5",
-              border: "border-red-500/10",
-            },
-            {
-              label: "Moderate (M5+)",
-              value: moderate.length,
-              color: "text-orange-400",
-              bg: "bg-orange-500/5",
-              border: "border-orange-500/10",
-            },
-            {
-              label: "Tsunami Alerts",
-              value: tsunamiAlerts.length,
-              color: "text-blue-400",
-              bg: "bg-blue-500/5",
-              border: "border-blue-500/10",
-            },
+            { label: "Total events", value: quakes.length, tone: "text-[var(--text)]" },
+            { label: "Major (M6+)", value: major.length, tone: major.length > 0 ? "text-[var(--accent-red)]" : "text-[var(--text)]" },
+            { label: "Moderate (M5+)", value: moderate.length, tone: "text-[var(--text)]" },
+            { label: "Tsunami alerts", value: tsunamiAlerts.length, tone: tsunamiAlerts.length > 0 ? "text-[var(--accent-amber)]" : "text-[var(--text)]" },
           ].map((stat) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`rounded-xl ${stat.bg} border ${stat.border} p-4 text-center`}
+              className="inset-well px-4 py-3.5"
             >
-              <div className={`text-2xl font-bold font-mono ${stat.color} mb-1`}>
+              <div className="eyebrow !text-[9px] mb-2">{stat.label}</div>
+              <div className={`font-mono tabular text-2xl leading-none font-medium ${stat.tone}`}>
                 {isLoading || quakesFailed ? "—" : stat.value}
-              </div>
-              <div className="text-[var(--text-faint)] text-xs uppercase tracking-wide">
-                {stat.label}
               </div>
             </motion.div>
           ))}

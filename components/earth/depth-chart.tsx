@@ -17,6 +17,7 @@ import {
   axisTick,
   axisLineProps,
   gridProps,
+  axisLabel,
   ChartFrame,
   TooltipShell,
 } from "@/lib/dataviz";
@@ -84,7 +85,7 @@ export function DepthChart({ earthquakes }: { earthquakes: Quake[] }) {
     >
       <div className="h-56 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 8, right: 8, bottom: 4, left: -20 }}>
+          <ScatterChart margin={{ top: 8, right: 8, bottom: 16, left: -12 }}>
             <CartesianGrid {...gridProps} vertical />
             <XAxis
               type="number"
@@ -94,12 +95,20 @@ export function DepthChart({ earthquakes }: { earthquakes: Quake[] }) {
               tick={axisTick}
               axisLine={axisLineProps}
               tickLine={false}
+              label={{
+                value: "DEPTH (KM)",
+                position: "insideBottom",
+                offset: -2,
+                style: axisLabel,
+              }}
             />
             <YAxis
               type="number"
               dataKey="mag"
               name="Magnitude"
-              domain={[4, "dataMax"]}
+              // The page filters by threshold, so a fixed floor of 4 left an
+              // empty band under every M5+ view. Follow the data instead.
+              domain={["dataMin - 0.2", "dataMax + 0.2"]}
               allowDecimals={false}
               tick={axisTick}
               axisLine={false}
@@ -115,6 +124,8 @@ export function DepthChart({ earthquakes }: { earthquakes: Quake[] }) {
               data={data}
               isAnimationActive={false}
               fillOpacity={0.85}
+              stroke="var(--surface-1)"
+              strokeWidth={2}
             >
               {data.map((p, i) => (
                 <Cell key={i} fill={p.color} />

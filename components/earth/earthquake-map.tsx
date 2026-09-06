@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { formatDistanceToNow } from "date-fns";
 import { magnitudeColor } from "@/lib/dataviz";
+import { useTheme } from "@/hooks/use-theme";
 import { EVENT_LAYERS, type NaturalEvent } from "@/lib/natural-events";
 
 interface EarthquakeFeature {
@@ -32,6 +33,9 @@ export default function EarthquakeMap({
   naturalEvents?: NaturalEvent[];
   height?: string;
 }) {
+  const { theme } = useTheme();
+  const canvas = theme === "light" ? "Light" : "Dark";
+
   return (
     <div
       className="rounded-2xl overflow-hidden border border-[var(--border)]"
@@ -44,22 +48,25 @@ export default function EarthquakeMap({
         zoomControl={true}
       >
         {/* CARTO's dark basemap now stamps "API KEY REQUIRED" across every
-            tile it serves without a key, so the map reads from Esri's
-            key-free Dark Gray Canvas instead. Esri builds it on OpenStreetMap
-            data; both require attribution, and this app credits every other
-            source it reads. */}
+            tile it serves without a key, so the map reads from Esri's key-free
+            Gray Canvas instead — the dark cut under the dark theme and the
+            light cut under the light one, rather than a CSS invert of the
+            wrong one. Esri builds it on OpenStreetMap data; both require
+            attribution, and this app credits every other source it reads. */}
         <TileLayer
-          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          key={`base-${canvas}`}
+          url={`https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${canvas}_Gray_Base/MapServer/tile/{z}/{y}/{x}`}
           attribution={
             'Tiles &copy; <a href="https://www.esri.com/">Esri</a> — Esri, HERE, Garmin, ' +
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }
         />
-        {/* Esri splits its dark canvas in two: the base carries geometry, the
+        {/* Esri splits its canvas in two: the base carries geometry, the
             reference layer carries place names. Without this the map is
             unlabelled at the zoom levels this view opens on. */}
         <TileLayer
-          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          key={`ref-${canvas}`}
+          url={`https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${canvas}_Gray_Reference/MapServer/tile/{z}/{y}/{x}`}
           attribution=""
         />
         {earthquakes.map((quake) => {

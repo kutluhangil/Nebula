@@ -2,12 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize2, X, MapPin, Clock, Waves, Bell, Activity } from "lucide-react";
+import { Maximize2, X, MapPin, Clock, Waves, Bell, Activity, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { useWatchlist } from "@/hooks/use-watchlist";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 import { useModal } from "@/hooks/use-modal";
 
 interface EarthquakeFeature {
@@ -60,6 +62,7 @@ export function EarthquakeList() {
   });
 
   const quakes = data?.features?.slice(0, 15) || [];
+  const totalCount = data?.features?.length ?? 0;
 
   if (isLoading) {
     return <div className="glass-panel h-64 skeleton" aria-busy="true" />;
@@ -69,20 +72,13 @@ export function EarthquakeList() {
   // answered, so the failure is stated instead.
   if (isError || !data) {
     return (
-      <div className="glass-panel p-4 h-64 flex flex-col items-center justify-center gap-3 text-center">
-        <Activity className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          USGS seismic data is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-xs">
-          {error instanceof Error ? error.message : "Unknown error"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-        >
-          Retry
-        </button>
+      <div className="glass-panel h-64 flex items-center justify-center">
+        <FeedError
+          title="USGS seismic data is unavailable right now."
+          error={error}
+          icon={Activity}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -107,7 +103,7 @@ export function EarthquakeList() {
             </a>
           )}
         </div>
-        <div className="divide-y divide-[var(--border)]">
+        <div className="divide-y divide-[var(--border)] max-h-[26rem] overflow-y-auto overscroll-contain">
           {quakes.map((quake, i) => {
             return (
               <motion.button
@@ -146,6 +142,18 @@ export function EarthquakeList() {
               </motion.button>
             );
           })}
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-[var(--border)]">
+          <span className="text-[var(--text-faint)] text-xs tabular">
+            Showing {quakes.length} of {totalCount} recorded
+          </span>
+          <Link
+            href="/earth"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors"
+          >
+            Open Earth monitor
+            <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </Link>
         </div>
       </motion.div>
 

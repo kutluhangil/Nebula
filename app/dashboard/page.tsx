@@ -42,8 +42,8 @@ export default function DashboardPage() {
   const totalQuakes = earthquakeData?.features?.length;
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 md:px-6 lg:px-8 selection:bg-[var(--surface-hover)]">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10 selection:bg-[var(--surface-hover)]">
+      <div className="max-w-7xl mx-auto space-y-10 md:space-y-14">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -53,17 +53,15 @@ export default function DashboardPage() {
         >
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-[var(--border)] bg-[var(--surface)] backdrop-blur-md">
-                <div className="live-dot" />
-                <span className="text-[10px] font-medium tracking-widest text-[var(--text-dim)] uppercase">
-                  Live Feed
-                </span>
+              <div className="eyebrow-pill">
+                <span className="live-dot" />
+                Live feed
               </div>
               <span className="text-[var(--text-faint)] text-xs font-medium tracking-wide">
                 NASA · USGS · NOAA
               </span>
             </div>
-            <h1 className="font-serif text-4xl md:text-5xl text-[var(--text)] tracking-tight">
+            <h1 className="display-1 text-[var(--text)]">
               Planet <span className="italic text-[var(--text-dim)]">Intelligence</span>
             </h1>
           </div>
@@ -80,7 +78,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* AI report + personal watchlist */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-stretch">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -99,7 +97,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {/* APOD — large */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -143,7 +141,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Second row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -173,7 +171,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Third row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -220,15 +218,15 @@ function SectionHeader({
   live?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between px-2">
-      <div className="flex items-center gap-2.5">
-        <Icon className="w-4 h-4 text-[var(--accent)]" strokeWidth={1.5} />
-        <span className="text-[var(--text)] font-medium tracking-wide">{title}</span>
-      </div>
-      <div className="flex items-center gap-2 text-[var(--text-faint)] text-xs font-medium tracking-wider uppercase">
-        {live && <div className="live-dot" />}
+    <div className="panel-head px-1">
+      <span className="panel-title">
+        <Icon className="w-4 h-4 text-[var(--accent)]" strokeWidth={1.25} />
+        {title}
+      </span>
+      <span className="flex items-center gap-2 eyebrow">
+        {live && <span className="live-dot" />}
         {subtitle}
-      </div>
+      </span>
     </div>
   );
 }

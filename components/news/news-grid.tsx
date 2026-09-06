@@ -6,6 +6,7 @@ import { NewsCard, SpaceflightArticle } from "./news-card";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 
 interface NewsResponse {
   count: number;
@@ -52,20 +53,13 @@ export function NewsGrid() {
 
   if (status === "error") {
     return (
-      <div className="glass-panel p-8 flex flex-col items-center justify-center gap-3 text-center">
-        <Newspaper className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          Space news is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-md">
-          {error instanceof Error ? error.message : "Unknown error"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-        >
-          Retry
-        </button>
+      <div className="glass-panel flex items-center justify-center">
+        <FeedError
+          title="Space news is unavailable right now."
+          error={error}
+          icon={Newspaper}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

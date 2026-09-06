@@ -13,6 +13,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 import { useNow } from "@/hooks/use-now";
 
 interface Launch {
@@ -105,7 +106,7 @@ export default function LaunchesPage() {
   );
 
   return (
-    <div className="min-h-screen pt-20 pb-12 px-4 md:px-6 lg:px-8">
+    <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -126,21 +127,14 @@ export default function LaunchesPage() {
         </motion.div>
 
         {isError && (
-          <div className="glass-card p-8 flex flex-col items-center justify-center gap-3 text-center">
-            <Rocket className="w-5 h-5 text-[var(--text-faint)]" />
-            <p className="text-[var(--text-dim)] text-sm">
-              Launch data is unavailable right now.
-            </p>
-            <p className="text-[var(--text-faint)] text-xs max-w-md">
-              {error instanceof Error ? error.message : "Unknown error"}
-            </p>
-            <button
-              onClick={() => refetch()}
-              className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+          <div className="glass-card flex items-center justify-center">
+        <FeedError
+          title="Launch data is unavailable right now."
+          error={error}
+          icon={Rocket}
+          onRetry={() => refetch()}
+        />
+      </div>
         )}
 
         {/* Next launch hero */}

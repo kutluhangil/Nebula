@@ -5,7 +5,7 @@ import { NewsGrid } from "@/components/news/news-grid";
 
 export default function NewsPage() {
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 md:px-6 lg:px-8 selection:bg-[var(--surface-hover)]">
+    <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10 selection:bg-[var(--surface-hover)]">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Header */}
         <motion.div

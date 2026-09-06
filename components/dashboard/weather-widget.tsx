@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Cloud, Sun, Sunrise, Sunset, Droplets, Wind, Moon, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { fetchJson } from "@/lib/api-client";
+import { FeedError } from "@/components/ui/feed-state";
 import { useLocation } from "@/hooks/use-location";
 
 interface WeatherData {
@@ -43,20 +44,13 @@ export function WeatherWidget() {
 
   if (isError || !data) {
     return (
-      <div className="glass-panel p-5 h-48 flex flex-col items-center justify-center gap-3 text-center">
-        <Cloud className="w-5 h-5 text-[var(--text-faint)]" />
-        <p className="text-[var(--text-dim)] text-sm">
-          Weather is unavailable right now.
-        </p>
-        <p className="text-[var(--text-faint)] text-xs max-w-xs">
-          {error instanceof Error ? error.message : "Unknown error"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-dim)] text-xs font-medium hover:text-[var(--text)] transition-colors"
-        >
-          Retry
-        </button>
+      <div className="glass-panel h-48 flex items-center justify-center">
+        <FeedError
+          title="Weather is unavailable right now."
+          error={error}
+          icon={Cloud}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -70,32 +64,49 @@ export function WeatherWidget() {
       animate={{ opacity: 1, y: 0 }}
       className="glass-panel p-5 relative overflow-hidden"
     >
-      <div className="absolute top-0 right-0 p-6 opacity-10">
-        {isDay ? <Sun className="w-32 h-32" /> : <Moon className="w-32 h-32" />}
+      {/* Decorative only: pushed past the corner so it sits behind the panel's
+          own padding instead of under the location control. */}
+      <div
+        className="absolute -top-8 -right-8 opacity-[0.05] pointer-events-none"
+        aria-hidden="true"
+      >
+        {isDay ? (
+          <Sun className="w-40 h-40" strokeWidth={0.75} />
+        ) : (
+          <Moon className="w-40 h-40" strokeWidth={0.75} />
+        )}
       </div>
 
       <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-4">
-          <Cloud className="w-4 h-4 text-sky-400" />
-          <span className="text-[var(--text-dim)] font-semibold text-sm">
-            {data.isLocalLocation ? "Local Weather" : "Space Coast Weather"}
-          </span>
+        <div className="mb-4 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Cloud className="w-4 h-4 text-[var(--accent-cyan)]" strokeWidth={1.5} />
+            <span className="text-[var(--text)] font-medium text-sm">
+              {data.isLocalLocation ? "Local weather" : "Space Coast weather"}
+            </span>
+          </div>
+          {/* The location control sits on its own line: at a third of the
+              dashboard width it wrapped into the title and over the artwork. */}
           {data.isLocalLocation ? (
-            <span className="text-[var(--text-faint)] text-xs ml-auto">Your location</span>
+            <span className="text-[var(--text-faint)] text-xs">Your location</span>
           ) : status === "prompting" ? (
-            <span className="text-[var(--text-faint)] text-xs ml-auto">Locating…</span>
+            <span className="text-[var(--text-faint)] text-xs">Locating…</span>
           ) : status === "denied" || status === "unavailable" ? (
-            <span className="text-[var(--text-faint)] text-xs ml-auto">
+            <span className="text-[var(--text-faint)] text-xs">
               {data.locationLabel}
             </span>
           ) : (
             <button
               onClick={request}
-              className="flex items-center gap-1 ml-auto text-[var(--text-faint)] text-xs hover:text-[var(--text-dim)] transition-colors"
+              className="inline-flex items-center gap-1.5 text-[var(--text-faint)] text-xs hover:text-[var(--text-dim)] transition-colors"
               aria-label="Use my location for weather"
             >
-              <MapPin className="w-3 h-3" />
-              {data.locationLabel} · Use my location
+              <MapPin className="w-3 h-3" strokeWidth={1.5} />
+              <span className="truncate">{data.locationLabel}</span>
+              <span aria-hidden="true">·</span>
+              <span className="underline underline-offset-2 decoration-dotted">
+                Use my location
+              </span>
             </button>
           )}
         </div>

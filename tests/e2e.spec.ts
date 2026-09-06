@@ -299,8 +299,13 @@ test.describe("iss tracker", () => {
     await page.goto("/dashboard");
 
     // The stats tile printed a hardcoded "27,600 km/h" regardless of the feed.
-    await expect(page.getByText("27,123 km/h").first()).toBeVisible();
-    await expect(page.getByText("27,600 km/h")).toHaveCount(0);
+    // The value and its unit are separate elements, so assert on the tile.
+    const speedTile = page
+      .getByText("ISS speed", { exact: true })
+      .locator("xpath=ancestor::div[1]/..");
+    await expect(speedTile).toContainText("27,123");
+    await expect(speedTile).toContainText("km/h");
+    await expect(page.getByText("27,600")).toHaveCount(0);
   });
 });
 
@@ -390,7 +395,7 @@ test.describe("stats bar", () => {
     await page.goto("/dashboard");
 
     const tile = page
-      .getByText("Hazardous Asteroids")
+      .getByText("Hazardous", { exact: true })
       .locator("xpath=ancestor::div[1]/..");
     // The "—" branch was dead code, so a pending feed rendered a confident 0.
     await expect(tile).toContainText("—");
@@ -544,8 +549,8 @@ test.describe("dead seismic feed", () => {
     // The counters used to read 0 total, 0 major, 0 moderate, 0 tsunami — a
     // claim that the planet recorded nothing all week.
     const totals = page
-      .getByText("Total Events")
-      .locator("xpath=preceding-sibling::div[1]");
+      .getByText("Total events", { exact: true })
+      .locator("xpath=following-sibling::div[1]");
     await expect(totals).toHaveText("—");
   });
 
@@ -767,5 +772,71 @@ test.describe("next launch", () => {
     ).toBeVisible();
     await expect(page.getByText("Next Launch", { exact: true })).toHaveCount(0);
     await expect(page.getByText("DAYS", { exact: true })).toHaveCount(0);
+  });
+});
+
+/**
+ * The CSS media query neutralises CSS transitions, but every entrance here is a
+ * Framer Motion animation driven from JavaScript, which the query cannot reach.
+ */
+test.describe("reduced motion", () => {
+  test("entrance animations drop their movement, not their content", async ({
+    page,
+  }) => {
+    // Set on the page rather than through `test.use`: the project's device
+    // preset pins the context options, so a describe-level override never
+    // reaches the browser here.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    expect(
+      await page.evaluate(
+        () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+    ).toBe(true);
+
+    const heading = page.getByRole("heading", {
+      name: "Six live feeds, one interface.",
+    });
+    await heading.scrollIntoViewIfNeeded();
+
+    const containerStyle = () =>
+      heading.evaluate((el) => {
+        const style = getComputedStyle(el.closest("div") as HTMLElement);
+        return { opacity: Number(style.opacity), transform: style.transform };
+      });
+
+    // Wait for the entrance to start rather than to finish: the point is that
+    // it never moves, and a settled element has no transform either way.
+    await expect.poll(async () => (await containerStyle()).opacity).toBeGreaterThan(0);
+
+    // Without MotionConfig the section slides in from translateY(24px) here.
+    expect((await containerStyle()).transform).toBe("none");
+    await expect(heading).toBeVisible();
+  });
+});
+
+/**
+ * A failed feed used to lead with the upstream provider's JSON body. The body
+ * is worth keeping for diagnosis; it is not the headline.
+ */
+test.describe("failure surface", () => {
+  test("states the failure in a sentence and keeps the raw body behind a disclosure", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/solar");
+    await page.goto("/dashboard");
+
+    await expect(
+      page.getByText(/NOAA space weather is unavailable right now/i)
+    ).toBeVisible();
+
+    // The upstream text lives inside a collapsed <details>, so it is present in
+    // the DOM for diagnosis and not rendered at the reader.
+    const detail = page.getByText(/Simulated upstream failure/);
+    await expect(detail).toHaveCount(1);
+    await expect(detail).not.toBeVisible();
+
+    await page.getByText("Technical detail", { exact: true }).first().click();
+    await expect(detail).toBeVisible();
   });
 });

@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-09-07 — Visual redesign: a design system instead of a set of card styles
+
+### Changed
+- Surfaces are opaque and stepped. Every panel was a near-transparent tint over the ambient background behind a 20px `backdrop-filter`, so cards barely separated from the page in either theme and the browser repainted a blur per card on every scroll. Panels now sit on their own surface with a lit top edge and a diffused ambient shadow; `backdrop-filter` is reserved for the fixed navigation and overlays, where it costs one repaint instead of eleven.
+- Theme tokens were rebuilt around a contrast ladder: a three-step surface scale, a shadow scale that is blue-tinted on light and an inset highlight on dark, a radius scale with concentric nesting, and named motion easings and durations. The light theme's ground was lowered so white cards read as objects resting on it.
+- A display type scale (three steps, each with its own leading) replaces per-page font-size guesses, and page headings, the eyebrow label and the panel header now come from shared primitives.
+- Every page root gained `w-full`. `main` centres its children, so a page without it shrank to the width of its widest child — the Earth and Timeline pages rendered in a column two thirds of the viewport with dead space beside them.
+- The dashboard's stat tiles lost their six different colour tints. Colour now marks state and nothing else: a hazardous-asteroid count above zero, and a Kp index at or above NOAA's storm boundary. Labels were shortened so none of the six truncates. The Earth page's counters follow the same rule.
+- The earthquake list scrolls inside its own panel and says how many of the recorded events it is showing. It was rendering fifteen full rows, stretching its dashboard column to twice the height of the panel beside it.
+- The timeline groups events under the day they happened, with the day's heading pinned while its group scrolls. Twenty-five identically weighted rows read as one undifferentiated list.
+- The weather card's location control moved onto its own line; at a third of the dashboard width it wrapped into the title and over the artwork.
+- The full-viewport animated scanline overlay was removed. It composited a translating gradient across every page, forever, for a 0.04-opacity smear.
+
+### Fixed
+- Framer Motion entrances ignored `prefers-reduced-motion`. The CSS media query neutralises CSS transitions, but every entrance in the app is animated from JavaScript and never saw it; a `MotionConfig` at the root now drops the movement and keeps the fade, so the content still arrives.
+- Failed feeds led with the upstream provider's raw JSON body. A shared failure surface now states what is unavailable in a sentence, keeps the upstream text one click away under a disclosure, and offers a retry — the same surface on all nine feed-backed cards and pages.
+- The map inverted its own basemap under the dark theme: a CSS filter written for a light tile set turned Esri's dark canvas light. The map now loads the dark cut under the dark theme and the light cut under the light one, and the filter is gone.
+- The magnitude distribution binned every event into four whole-magnitude bands, so a filtered view was one tall bar beside three empty ones. It bins in half steps across the range actually recorded, and both Earth charts now name their axes.
+- The Kp gauge was a continuous progress bar. It is drawn as the ten discrete steps NOAA reports, with the storm boundary written on the scale.
+- The severity ramp put `#f59e0b` beside `#f97316` — ΔE 9.6 for normal vision, 6.2 under deuteranopia — so "moderate" and "strong" were the same colour in the map legend. The replacement ramp measures ΔE 15.0 and 13.2 at its closest pair and descends in lightness, so the bands rank without the legend.
+- The footer's "Spaceflight News" link pointed at /space instead of /news.
+
+### Added
+- Two regression tests, both failing against the previous code: entrance animations carry no transform under `prefers-reduced-motion: reduce`, and a failed feed keeps the upstream body inside a collapsed disclosure rather than rendering it at the reader.
+
 ## 2026-09-07 — Visible-defect pass before the design system work
 
 ### Fixed

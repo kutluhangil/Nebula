@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { fetchJson } from "@/lib/api-client";
 import {
-  ArrowRight,
+  ArrowUpRight,
   Globe,
   Satellite,
   Zap,
@@ -161,10 +161,10 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease }}
-            className="mb-10 inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] backdrop-blur-md"
+            className="eyebrow-pill mb-10"
           >
             <span className="live-dot" />
-            <span className="eyebrow !text-[var(--text-dim)]">Planet intelligence platform</span>
+            Planet intelligence platform
           </motion.div>
 
           <motion.div
@@ -180,7 +180,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease, delay: 0.2 }}
-            className="font-serif text-5xl md:text-6xl tracking-tight text-[var(--text)] mb-5 leading-[1.05]"
+            className="display-1 text-[var(--text)] mb-5"
           >
             Mission control<br />
             <span className="italic text-[var(--text-dim)]">for the curious.</span>
@@ -204,7 +204,9 @@ export default function HomePage() {
           >
             <Link href="/dashboard" className="btn-primary group">
               Open dashboard
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <span className="btn-disc">
+                <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
+              </span>
             </Link>
             <Link href="/news" className="btn-ghost">
               Read space news
@@ -260,15 +262,17 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, delay: (i % 3) * 0.08, ease }}
-                className="glass-panel p-7 group"
+                className="bezel group"
               >
-                <div className="icon-tile w-11 h-11 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center mb-6">
-                  <Icon className="w-5 h-5 text-[var(--accent)]" strokeWidth={1.5} />
+                <div className="bezel-core p-7">
+                  <div className="icon-tile w-11 h-11 rounded-xl inset-well flex items-center justify-center mb-6">
+                    <Icon className="w-5 h-5 text-[var(--accent)]" strokeWidth={1.25} />
+                  </div>
+                  <h3 className="text-lg font-medium text-[var(--text)] mb-2.5">{m.title}</h3>
+                  <p className="text-[var(--text-dim)] leading-relaxed font-light text-[15px]">
+                    {m.description}
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-[var(--text)] mb-2.5">{m.title}</h3>
-                <p className="text-[var(--text-dim)] leading-relaxed font-light text-[15px]">
-                  {m.description}
-                </p>
               </motion.div>
             );
           })}
@@ -287,7 +291,7 @@ export default function HomePage() {
           <div className="glow-blob glow-blue w-[500px] h-[400px] -top-40 left-1/2 -translate-x-1/2" />
           <div className="relative z-10 flex flex-col items-center">
             <div className="eyebrow mb-5">Ready when you are</div>
-            <h2 className="font-serif text-3xl md:text-5xl text-[var(--text)] mb-6 leading-[1.1] max-w-2xl">
+            <h2 className="display-2 text-[var(--text)] mb-6 max-w-2xl">
               The whole planet, on one screen.
             </h2>
             <p className="text-[var(--text-dim)] text-lg font-light max-w-xl mb-10">
@@ -295,7 +299,9 @@ export default function HomePage() {
             </p>
             <Link href="/dashboard" className="btn-primary group">
               Open dashboard
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <span className="btn-disc">
+                <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
+              </span>
             </Link>
           </div>
         </motion.div>
