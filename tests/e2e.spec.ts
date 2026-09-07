@@ -1042,3 +1042,445 @@ test.describe("sky almanac", () => {
     await expect(page).toHaveURL(/\/sky$/);
   });
 });
+
+test.describe("alert engine", () => {
+  interface CapturedNotification {
+    title: string;
+    body?: string;
+    tag?: string;
+  }
+
+  interface FeedStubs {
+    apod: { date: string; title: string };
+    kpIndex: number;
+    upcoming: {
+      id: string;
+      name: string;
+      date_utc: string;
+      launchpad: string;
+    }[];
+  }
+
+  /**
+   * Every feed the engine reads is stubbed, so a test asserts on the engine
+   * rather than on whatever NASA, USGS and NOAA happen to be publishing. The
+   * stubs are re-registered between reloads; Playwright runs the most recently
+   * added matching handler, so the later values win.
+   */
+  async function stubFeeds(page: Page, stubs: FeedStubs) {
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed report." } })
+    );
+    await page.route("**/api/apod", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          date: stubs.apod.date,
+          title: stubs.apod.title,
+          explanation: "Stubbed.",
+          url: "https://apod.nasa.gov/apod/image/stub.jpg",
+          media_type: "image",
+        },
+      })
+    );
+    await page.route("**/api/earthquakes", (route) =>
+      route.fulfill({ status: 200, json: { features: [] } })
+    );
+    await page.route("**/api/solar", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          kpIndex: stubs.kpIndex,
+          observedAt: "2026-09-07 12:00:00.000",
+          auroraProbability: 0,
+          auroraObservedAt: "2026-09-07T12:00Z",
+          geoStorms: 0,
+          solarFlares: 0,
+          source: "Stub",
+        },
+      })
+    );
+    await page.route("**/api/spacex", (route) =>
+      route.fulfill({ status: 200, json: { latest: null, upcoming: stubs.upcoming } })
+    );
+  }
+
+  /** Replaces the Notification API with a recorder, before any app code runs. */
+  async function captureNotifications(page: Page) {
+    await page.addInitScript(() => {
+      const captured: CapturedNotification[] = [];
+      class RecordingNotification {
+        static permission = "granted";
+        static requestPermission = async () => "granted";
+        constructor(title: string, options?: { body?: string; tag?: string }) {
+          captured.push({ title, body: options?.body, tag: options?.tag });
+        }
+      }
+      const target = window as unknown as Record<string, unknown>;
+      target.Notification = RecordingNotification;
+      target.__capturedNotifications = captured;
+    });
+  }
+
+  function readNotifications(page: Page) {
+    return page.evaluate(
+      () =>
+        (window as unknown as Record<string, unknown>)
+          .__capturedNotifications as CapturedNotification[]
+    );
+  }
+
+  const QUIET: FeedStubs = {
+    apod: { date: "2026-09-06", title: "Yesterday's picture" },
+    kpIndex: 1,
+    upcoming: [],
+  };
+
+  const watchlist = (page: Page) =>
+    page.getByRole("region", { name: "Alert watchlist" });
+
+  const alertsOn = (page: Page) =>
+    watchlist(page).getByRole("button", { name: "Turn alerts off" });
+
+  async function enableAlerts(page: Page) {
+    await page.goto("/dashboard");
+    await watchlist(page).getByRole("button", { name: "Enable alerts" }).click();
+    await expect(alertsOn(page)).toBeVisible();
+  }
+
+  test("enabling does not fire for what is already on screen", async ({
+    page,
+  }) => {
+    await captureNotifications(page);
+    await stubFeeds(page, QUIET);
+    await enableAlerts(page);
+
+    // The picture, the Kp reading and the launch board were all visible when
+    // the reader turned alerts on. Reporting them is the backlog burst the
+    // priming rule exists to prevent.
+    expect(await readNotifications(page)).toEqual([]);
+  });
+
+  test("a new NASA picture alerts once", async ({ page }) => {
+    await captureNotifications(page);
+    await stubFeeds(page, QUIET);
+    await enableAlerts(page);
+
+    await stubFeeds(page, {
+      ...QUIET,
+      apod: { date: "2026-09-07", title: "The Pillars of Creation" },
+    });
+    await page.reload();
+
+    await expect
+      .poll(async () => await readNotifications(page))
+      .toEqual([
+        {
+          title: "New NASA image of the day",
+          body: "The Pillars of Creation",
+          tag: "apod-2026-09-07",
+        },
+      ]);
+
+    // Same picture on the next load: the id set has already seen it.
+    await page.reload();
+    await expect(alertsOn(page)).toBeVisible();
+    expect(await readNotifications(page)).toEqual([]);
+  });
+
+  test("a source that is switched off stays silent", async ({ page }) => {
+    await captureNotifications(page);
+    await stubFeeds(page, QUIET);
+    await enableAlerts(page);
+
+    await watchlist(page).getByRole("button", { name: "NASA image" }).click();
+    await expect(
+      watchlist(page).getByRole("button", { name: "NASA image" })
+    ).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+
+    await stubFeeds(page, {
+      ...QUIET,
+      apod: { date: "2026-09-07", title: "The Pillars of Creation" },
+    });
+    await page.reload();
+    await expect(alertsOn(page)).toBeVisible();
+
+    // The toggle survived the reload and the picture went unreported.
+    await expect(
+      watchlist(page).getByRole("button", { name: "NASA image" })
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(await readNotifications(page)).toEqual([]);
+  });
+
+  test("a storm above the Kp threshold alerts with its G scale", async ({
+    page,
+  }) => {
+    await captureNotifications(page);
+    await stubFeeds(page, QUIET);
+    await enableAlerts(page);
+
+    await stubFeeds(page, { ...QUIET, kpIndex: 7 });
+    await page.reload();
+
+    await expect
+      .poll(async () => (await readNotifications(page))[0]?.title)
+      .toBe("Geomagnetic storm — Kp 7");
+    const [storm] = await readNotifications(page);
+    expect(storm.body).toContain("G3 strong");
+    expect(storm.tag).toBe("solar-kp7-2026-09-07");
+  });
+
+  test("a launch inside the hour alerts with its countdown", async ({ page }) => {
+    await captureNotifications(page);
+    await stubFeeds(page, QUIET);
+    await enableAlerts(page);
+
+    const liftoff = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    await stubFeeds(page, {
+      ...QUIET,
+      upcoming: [
+        {
+          id: "stub-launch-1",
+          name: "Starlink Group 99-1",
+          date_utc: liftoff,
+          launchpad: "SLC-40, Cape Canaveral",
+        },
+      ],
+    });
+    await page.reload();
+
+    await expect
+      .poll(async () => (await readNotifications(page))[0]?.tag)
+      .toBe("launch-stub-launch-1");
+    const [launch] = await readNotifications(page);
+    expect(launch.title).toMatch(/^Starlink Group 99-1 launches in (29|30) min$/);
+    expect(launch.body).toBe("SLC-40, Cape Canaveral");
+  });
+
+  test("a launch further out than an hour stays quiet", async ({ page }) => {
+    await captureNotifications(page);
+    await stubFeeds(page, {
+      ...QUIET,
+      upcoming: [
+        {
+          id: "stub-launch-2",
+          name: "Transporter 42",
+          date_utc: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
+          launchpad: "SLC-4E, Vandenberg",
+        },
+      ],
+    });
+    await enableAlerts(page);
+    await page.reload();
+    await expect(alertsOn(page)).toBeVisible();
+
+    expect(await readNotifications(page)).toEqual([]);
+  });
+
+  test("a source's rule is only shown while the source is on", async ({
+    page,
+  }) => {
+    await stubFeeds(page, QUIET);
+    await page.goto("/dashboard");
+
+    const card = page.getByRole("region", { name: "Alert watchlist" });
+    await expect(card.getByText("Solar storm threshold")).toBeVisible();
+
+    await card.getByRole("button", { name: "Solar storms" }).click();
+    await expect(card.getByText("Solar storm threshold")).toBeHidden();
+
+    await card.getByRole("button", { name: "Earthquakes" }).click();
+    await expect(card.getByText("Earthquake threshold")).toBeHidden();
+  });
+});
+
+test.describe("universal search", () => {
+  const QUAKES = {
+    features: [
+      {
+        id: "q1",
+        properties: {
+          mag: 6.3,
+          place: "84 km SSW of Nikolski, Alaska",
+          time: Date.parse("2026-09-03T04:00:00Z"),
+          tsunami: 0,
+        },
+      },
+      {
+        id: "q2",
+        properties: {
+          mag: 4.4,
+          place: "124 km S of Dampit, Indonesia",
+          time: Date.parse("2026-09-07T02:00:00Z"),
+          tsunami: 0,
+        },
+      },
+    ],
+  };
+
+  const ASTEROIDS = {
+    asteroids: [
+      {
+        id: "a1",
+        name: "(2019 BT2)",
+        is_potentially_hazardous_asteroid: true,
+        estimated_diameter: { kilometers: { estimated_diameter_max: 0.472 } },
+        close_approach_data: [{ miss_distance: { kilometers: "69253362" } }],
+      },
+      {
+        id: "a2",
+        name: "(2019 LV)",
+        is_potentially_hazardous_asteroid: false,
+        estimated_diameter: { kilometers: { estimated_diameter_max: 0.084 } },
+        close_approach_data: [{ miss_distance: { kilometers: "35743377" } }],
+      },
+    ],
+  };
+
+  const CREW = {
+    expedition: 75,
+    people: [
+      {
+        id: "1",
+        name: "Jessica Meir",
+        country: "United States",
+        agency: "NASA",
+        position: "Flight Engineer",
+        spacecraft: "Crew-12 Dragon",
+        onIss: true,
+        launchedUtc: "2026-02-13T09:15:55.000Z",
+        daysInSpace: 206,
+        url: "https://en.wikipedia.org/wiki/Jessica_Meir",
+      },
+    ],
+    source: "community mirror",
+  };
+
+  const LAUNCHES = {
+    latest: null,
+    upcoming: [
+      {
+        id: "l1",
+        name: "Starlink Group 12-4",
+        date_utc: "2026-09-10T12:00:00.000Z",
+        rocket: "Falcon 9 Block 5",
+        launchpad: "SLC-40, Cape Canaveral",
+        success: null,
+        details: null,
+        links: { patch: { small: null, large: null }, webcast: null, article: null },
+      },
+    ],
+  };
+
+  /** Stubs the four record feeds so a search asserts on search, not on upstream. */
+  async function stubRecords(page: Page) {
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed report." } })
+    );
+    await page.route("**/api/earthquakes", (route) =>
+      route.fulfill({ status: 200, json: QUAKES })
+    );
+    await page.route("**/api/space", (route) =>
+      route.fulfill({ status: 200, json: ASTEROIDS })
+    );
+    await page.route("**/api/astronauts", (route) =>
+      route.fulfill({ status: 200, json: CREW })
+    );
+    await page.route("**/api/spacex", (route) =>
+      route.fulfill({ status: 200, json: LAUNCHES })
+    );
+  }
+
+  async function openPalette(page: Page, query: string) {
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Search" }).first().click();
+    const input = page.locator("[cmdk-input]");
+    await expect(input).toBeVisible();
+    await input.fill(query);
+    return page.locator("[cmdk-list]");
+  }
+
+  test("finds records across every entity the app holds", async ({ page }) => {
+    await stubRecords(page);
+
+    const list = await openPalette(page, "Meir");
+    await expect(list).toContainText("Jessica Meir");
+    // The row carries the measured detail, not just the name.
+    await expect(list).toContainText("206 days in space");
+
+    await page.locator("[cmdk-input]").fill("Falcon 9");
+    await expect(list).toContainText("Starlink Group 12-4");
+
+    await page.locator("[cmdk-input]").fill("Nikolski");
+    await expect(list).toContainText("M6.3");
+
+    await page.locator("[cmdk-input]").fill("2019 BT2");
+    await expect(list).toContainText("flagged hazardous");
+
+    await page.locator("[cmdk-input]").fill("Neptune");
+    await expect(list).toContainText("16 moons");
+  });
+
+  test("matches on substrings, not on a loose fuzzy score", async ({ page }) => {
+    await stubRecords(page);
+
+    // The regression: cmdk's default subsequence filter scored "M6" against
+    // "Jessica Meir" and "Falcon" against Mexican earthquakes, so a magnitude
+    // search returned people and a rocket search returned places.
+    const list = await openPalette(page, "M6");
+    await expect(list).toContainText("Nikolski");
+    await expect(list).not.toContainText("Jessica Meir");
+
+    await page.locator("[cmdk-input]").fill("Falcon");
+    await expect(list).toContainText("Falcon 9 Block 5");
+    await expect(list).not.toContainText("Dampit");
+
+    // "hazardous" belongs to the flagged object's detail, not to every
+    // asteroid's keyword list.
+    await page.locator("[cmdk-input]").fill("hazardous");
+    await expect(list).toContainText("(2019 BT2)");
+    await expect(list).not.toContainText("(2019 LV)");
+  });
+
+  test("records stay out of the way until something is typed", async ({
+    page,
+  }) => {
+    await stubRecords(page);
+
+    const list = await openPalette(page, "");
+    await expect(list).toContainText("Dashboard");
+    // A hundred earthquakes listed under the pages would bury them.
+    await expect(list).not.toContainText("Nikolski");
+  });
+
+  test("a dead feed is named rather than read as no such record", async ({
+    page,
+  }) => {
+    await stubRecords(page);
+    await breakRoute(page, "/api/space");
+
+    await openPalette(page, "asteroid");
+    const notice = page.getByText("Asteroids are not searchable right now");
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText("Simulated upstream failure");
+  });
+
+  test("an astronaut opens the reference the roster points at", async ({
+    page,
+  }) => {
+    await stubRecords(page);
+
+    const list = await openPalette(page, "Meir");
+    const [popup] = await Promise.all([
+      page.waitForEvent("popup"),
+      list.getByText("Jessica Meir").click(),
+    ]);
+    // The app has no astronaut page, so the row leaves the app — and says so
+    // with an external marker rather than pretending to navigate in place.
+    expect(popup.url()).toBe("https://en.wikipedia.org/wiki/Jessica_Meir");
+    await popup.close();
+  });
+});

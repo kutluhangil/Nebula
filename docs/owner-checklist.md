@@ -122,19 +122,32 @@ sadece bilmen için.
 
 ---
 
-## 6. Kalan ürün kapsamı — sadece bildirimler
+## 6. Kalan ürün kapsamı — KAPANDI
 
 `docs/Prompt.md` (507 satırlık orijinal spesifikasyon) içinde arayüzün hiç vaat
 etmediği, dolayısıyla hata sayılmayan ama yapılmamış özellikler vardı. İstatistik
-kartları ve ek widget'lar kapandı; geriye bildirimler kaldı.
+kartları, ek widget'lar, bildirimler ve evrensel arama — dördü de kapandı.
+(Önceki notun "geriye sadece bildirimler kaldı" cümlesi eksikti; arama kalemi
+gözden kaçmıştı.)
 
-**Bildirimler** (`# Notifications`) — şu an sadece deprem uyarısı var ve kartı
-sınırını dürüstçe yazıyor ("Alerts run while this tab is open"). Yapılmamış
-olanlar:
-- Yeni NASA görseli bildirimi
-- SpaceX fırlatma bildirimi
-- Solar fırtına bildirimi
-- ISS tepeden geçiyor bildirimi (spesifikasyonda da "future feature" yazıyor)
+**Bildirimler** (`# Notifications`) — YAPILDI. Dört kaynak var, her biri
+watchlist kartından tek tek açılıp kapanıyor:
+- Deprem (eşik + tsunami filtresi) — zaten vardı
+- Yeni NASA görseli — NASA'nın `date` alanı değişince
+- SpaceX fırlatma — yayınlanan kalkış saatinden bir saat önce
+- Solar fırtına — seçilen Kp eşiğinde ya da üstünde
+- ISS tepeden geçiyor — spesifikasyonun kendisi "future feature" diyor, kapsam
+  dışı bırakıldı.
+
+Her kaynağın olay kimliği ayrı seçildi, aynı olay iki kez bildirilmesin diye:
+görsel NASA'nın tarihine, fırlatma Launch Library kimliğine (NET kayıyor), fırtına
+Kp seviyesi + UTC gününe bakıyor. Kp5'ten Kp7'ye derinleşen bir fırtına tekrar
+haber veriyor; sadece süren bir fırtına susuyor.
+
+Sınır aynı ve kart hâlâ yazıyor: **uyarılar yalnızca sekme açıkken çalışıyor.**
+Service worker ya da sunucu tarafı push yok. Tarayıcı bildirimleri site için
+engellemişse kart bunu da söylüyor — buton yeniden izin isteyemez, tek yol
+tarayıcının kendi site ayarları.
 
 **Ek widget'lar** (`# Extra Widgets`) — YAPILDI. `/sky` rotası (Sky Almanac)
 yedi widget taşıyor: ay evresi, Dünya'nın dönüşü, günün takımyıldızı, günün
@@ -170,8 +183,35 @@ göstermek, bu projenin birkaç fazdır temizlediği kusurun aynısı olurdu.
 ve ISS'in ölçülen yüksekliği stat bar'a eklendi; bar altı yerine sekiz kutucuk,
 dört sütunlu iki satır olarak duruyor.
 
-Kalan bildirim kalemleri "kırık" değil: arayüz onları göstereceğini söylemiyor,
-o yüzden kullanıcıya yalan söylenmiyor. Sıradaki faz bu.
+**Evrensel arama** (`# Search`) — YAPILDI. ⌘K paleti artık sayfa ve eylemin
+yanında kayıt da arıyor: görevler ve roketler (fırlatma tahtasından), gezegenler
+(NASA fact sheet), şu an uzayda olan insanlar, günün NEO'ları, M4.0+ deprem
+akışı. Her satır adın altında ölçülen ayrıntıyı da basıyor — büyüklük ve tarih,
+ıskalama mesafesi, uzayda geçen gün.
+
+Kayıtlar ancak bir şey yazılınca çıkıyor (tek başına 100 deprem var, hepsini
+listelemek sayfaları gömerdi) ve besleme çökmüşse palet bunu sonuçların üstünde
+adıyla söylüyor — boş sonuç "böyle bir kayıt yok" diye okunmasın diye.
+
+**Astronot kaynağı bir karar gerektirdi.** 2026-09-07'de iki kaynak ölçüldü:
+
+```
+api.open-notify.org/astros.json   200  ekip listesi 2024'te donmuş (Ekspedisyon 71)
+corquaid.github.io/...            200  Ekspedisyon 75, güncel
+```
+
+open-notify canlı değil — Mars kartındaki kusurun aynısı — kullanılmadı.
+Kullanılan kaynak **üçüncü parti bir topluluk mirror'ı**; `/api/astronauts`
+kendi `source` alanında bunu yazıyor. Uzayda geçen gün sayısı mirror'ın kendi
+`days_in_space` alanından değil, fırlatma zaman damgasından hesaplanıyor:
+mirror'ın alanı ölçüldüğünde yanlıştı (150 diyordu, fırlatma tarihinden 106
+çıkıyor).
+
+Bilmen gereken: bu tek kaynak bir gün bakımsız kalırsa astronot araması düşer.
+Footer'daki kaynak durumu listesine eklendi, yani düştüğünde orada görünür.
+Resmî, makine okunur bir mürettebat listesi yayınlayan ajans yok — alternatif
+Launch Library'nin astronot ucu, o da anonim çağrıları saatte ~15 istekle
+sınırlıyor.
 
 ---
 

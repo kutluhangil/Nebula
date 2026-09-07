@@ -291,6 +291,9 @@ test.describe("health", () => {
     // News was the one feed the browser called directly, so it was invisible
     // to the status list in the footer.
     expect(body.sources.map((s: { id: string }) => s.id)).toContain("news");
+    // Every upstream the app depends on has to appear, or the footer's status
+    // list quietly under-reports what can break.
+    expect(body.sources.map((s: { id: string }) => s.id)).toContain("crew");
   });
 });
 
@@ -353,6 +356,38 @@ test.describe("page metadata", () => {
       const html = await (await request.get(path)).text();
       const canonical = html.match(/rel="canonical" href="([^"]*)"/)?.[1];
       expect(new URL(canonical!).pathname, `${path} canonical`).toBe(path);
+    }
+  });
+});
+
+test.describe("astronauts", () => {
+  test("names the crew and dates each stay from its launch", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/astronauts");
+    await skipIfUpstreamDown(response, "Crew roster");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(Array.isArray(body.people)).toBe(true);
+    expect(body.people.length).toBeGreaterThan(0);
+    // The roster is a community mirror, and the payload says so, because the
+    // palette prints that attribution rather than implying a NASA feed.
+    expect(body.source).toContain("mirror");
+
+    for (const person of body.people) {
+      expect(typeof person.name).toBe("string");
+      expect(person.name.length).toBeGreaterThan(0);
+
+      // Days in space is computed here from the launch timestamp rather than
+      // copied from the mirror's own counter, which is only as fresh as its
+      // last rebuild. Where a launch time exists the two must agree.
+      if (person.launchedUtc) {
+        const launched = Date.parse(person.launchedUtc);
+        expect(launched).not.toBeNaN();
+        const expected = Math.floor((Date.now() - launched) / 86_400_000);
+        expect(person.daysInSpace).toBe(expected);
+      }
     }
   });
 });

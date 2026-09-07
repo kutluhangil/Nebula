@@ -11,6 +11,7 @@ const PROBES = [
   { id: "launch", label: "Launch Library 2", path: "/api/spacex", href: "https://thespacedevs.com/llapi" },
   { id: "eonet", label: "NASA EONET", path: "/api/events?category=wildfires", href: "https://eonet.gsfc.nasa.gov/" },
   { id: "news", label: "Spaceflight News", path: "/api/news", href: "https://spaceflightnewsapi.net/" },
+  { id: "crew", label: "ISS Crew Roster", path: "/api/astronauts", href: "https://github.com/corquaid/international-space-station-APIs" },
 ] as const;
 
 const PROBE_TIMEOUT_MS = 8000;

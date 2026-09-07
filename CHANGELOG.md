@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-09-07 — Universal search
+
+### Added
+- The ⌘K palette now searches records, not only pages and actions: missions and rockets from the launch board, planets from the NASA fact sheet, people currently in space, NASA's near-Earth objects for the day, and the M4.0+ earthquake feed. Every row carries the measured detail behind it — a magnitude and date, a miss distance, days in space — rather than a bare name.
+- `/api/astronauts`, a crew roster route. `api.open-notify.org/astros.json` answers 200 but its roster has been frozen since 2024 and still lists Expedition 71, so it is not used; the route reads a community mirror and says in its payload that it is one. Days in space are computed from the launch timestamp rather than copied from the mirror's own counter, which was measurably wrong — 150 where the launch date gives 106.
+- The crew roster joins the six sources the footer's status list probes, so the list does not under-report what can break.
+- Six tests, all failing against the previous code: records are found across every entity, matching is by substring rather than fuzzy score, records stay out of the way until something is typed, a dead feed is named instead of reading as no such record, an astronaut row opens the reference the roster points at, and the route dates each stay from its launch.
+
+### Changed
+- The palette supplies its own filter. cmdk's default fuzzy subsequence match scored "M6" against "Jessica Meir" and "Falcon" against Mexican earthquakes; matching on whole-query prefix, then substring, then every term keeps a magnitude search returning magnitudes. Keywords were tightened for the same reason: "falcon" is not a mission keyword and "hazardous" is not an asteroid keyword.
+- A feed that failed is named above the results with its upstream message, so an empty result over a dead feed is not read as "no such record".
+
+### Notes
+- Record feeds are pulled only while the palette is open, and share their query keys with the cards, so opening it on a page that already loaded a feed costs nothing.
+
+## 2026-09-07 — The rest of the notifications
+
+### Added
+- The three notification triggers the original specification listed and the app had never built: a new NASA picture of the day, a SpaceX launch an hour before its published liftoff, and a geomagnetic storm at or above a chosen Kp level. The fifth trigger, an ISS overhead pass, is marked "future feature" in the specification and stays out.
+- Per-source toggles in the watchlist, each with its own rule: a magnitude and tsunami filter for earthquakes, a Kp threshold for solar storms. A rule is only shown while its source is on, so no control is displayed that cannot take effect.
+- `useAlertSource`, the dedupe-cap-send core the four sources share, and `useAlerts`, the single mount point that gates every source on the master switch, the browser permission and the source's own toggle. Seven tests, all failing against the previous code: enabling reports nothing already on screen, a new picture alerts exactly once, a source switched off stays silent, a Kp 7 storm alerts with its G scale, a launch inside the hour alerts with its countdown, one further out stays quiet, and a source's rule disappears with the source.
+
+### Changed
+- The watchlist card names a blocked notification permission instead of leaving the enable button silently inert; a blocked site cannot re-prompt, so the browser's own settings are the only way back.
+- `requestPermission` returns the resulting permission rather than leaving callers to read the `Notification` global, which is not defined at all in browsers without the API.
+
+### Notes
+- Alert ids are chosen per source so a repeat cannot slip through: the picture keys on NASA's `date`, a launch on its Launch Library id (its NET moves), and a storm on its Kp level plus the UTC day — a storm that deepens from Kp5 to Kp7 is reported, one that merely persists is not.
+- Alerts still only run while the tab is open, which the card has always said. There is no service worker and no server-side push.
+
 ## 2026-09-07 — The sky almanac
 
 ### Added

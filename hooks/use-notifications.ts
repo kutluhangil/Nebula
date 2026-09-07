@@ -32,10 +32,16 @@ export function useNotifications() {
     getServerSnapshot
   );
 
-  const requestPermission = useCallback(async () => {
-    if (!("Notification" in window)) return;
-    await Notification.requestPermission();
+  /**
+   * Returns the resulting permission so callers can branch on it without
+   * touching the `Notification` global themselves — which is not defined at
+   * all in browsers that lack the API, where reading it throws.
+   */
+  const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
+    if (!("Notification" in window)) return "denied";
+    const result = await Notification.requestPermission();
     window.dispatchEvent(new Event(CHANGE_EVENT));
+    return result;
   }, []);
 
   const sendNotification = useCallback(
