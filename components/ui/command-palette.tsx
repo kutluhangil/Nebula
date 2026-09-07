@@ -69,6 +69,7 @@ export function CommandPalette({
     { id: "dashboard", label: "Dashboard", icon: Globe, keywords: "overview live feeds", perform: () => go("/dashboard") },
     { id: "news", label: "Space news", icon: Newspaper, keywords: "articles reporting", perform: () => go("/news") },
     { id: "space", label: "Space observatory", icon: Satellite, keywords: "apod nasa asteroid", perform: () => go("/space") },
+    { id: "sky", label: "Sky almanac", icon: Moon, keywords: "moon phase constellation planet mars quote fact rotation", perform: () => go("/sky") },
     { id: "earth", label: "Earth intelligence", icon: Activity, keywords: "earthquakes usgs map quake", perform: () => go("/earth") },
     { id: "launches", label: "Launches", icon: Rocket, keywords: "spacex rocket missions", perform: () => go("/launches") },
     { id: "timeline", label: "Timeline", icon: Zap, keywords: "events history", perform: () => go("/timeline") },

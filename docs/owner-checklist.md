@@ -122,11 +122,11 @@ sadece bilmen için.
 
 ---
 
-## 6. Karar bekleyen ürün kapsamı — hata değil, hiç başlanmamış iş
+## 6. Kalan ürün kapsamı — sadece bildirimler
 
 `docs/Prompt.md` (507 satırlık orijinal spesifikasyon) içinde arayüzün hiç vaat
-etmediği, dolayısıyla hata sayılmayan ama yapılmamış özellikler var. Bunlara
-dokunmadım; yapılmasını istiyorsan söyle, her biri ayrı bir iş kalemi:
+etmediği, dolayısıyla hata sayılmayan ama yapılmamış özellikler vardı. İstatistik
+kartları ve ek widget'lar kapandı; geriye bildirimler kaldı.
 
 **Bildirimler** (`# Notifications`) — şu an sadece deprem uyarısı var ve kartı
 sınırını dürüstçe yazıyor ("Alerts run while this tab is open"). Yapılmamış
@@ -136,17 +136,42 @@ olanlar:
 - Solar fırtına bildirimi
 - ISS tepeden geçiyor bildirimi (spesifikasyonda da "future feature" yazıyor)
 
-**Ek widget'lar** (`# Extra Widgets`) — hiçbiri yok:
-Ay evresi · Mars hava durumu · Günün takımyıldızı · Günün gezegeni ·
-Rastgele astronomi bilgisi · Günün uzay sözü · Dünya'nın dönüşü ·
-Gün doğumu / batımı
+**Ek widget'lar** (`# Extra Widgets`) — YAPILDI. `/sky` rotası (Sky Almanac)
+yedi widget taşıyor: ay evresi, Dünya'nın dönüşü, günün takımyıldızı, günün
+gezegeni, astronomi bilgisi, uzay sözü, Mars hava durumu. Sekizincisi —
+gün doğumu / batımı — zaten dashboard'daki hava durumu kartında duruyordu
+(Open-Meteo `daily=sunrise,sunset`), oraya dokunulmadı.
+
+Her kart hangi sınıftan olduğunu kendi üstünde yazıyor:
+
+- **Computed** — ay evresi ve Dünya dönüşü, saatten hesaplanıyor. Ay serisi
+  `suncalc`, iki bilinen olaya karşı doğrulandı: 2019-01-21 tam ay tutulması
+  phase 0.5010 / aydınlanma 1.000, 2017-08-21 tam güneş tutulması phase 0.0012 /
+  aydınlanma 0.000. Yüzey hızı küre yerine WGS84 birinci dikey yarıçapını
+  kullanıyor, ekvatorda 1674.364 km/h.
+- **Curated** — takımyıldız, gezegen, bilgi, söz. Canlı veri değil; her kayıt
+  kaynağını taşıyor (IAU takımyıldız sınırları, NASA planetary fact sheet) ve
+  kart o atfı basıyor. Günün kaydı epoch'tan bu yana geçen tam güne göre
+  seçiliyor — rastgele değil, yoksa "günün" kelimesi yalan olurdu.
+- **Archive** — Mars. Aşağıdaki not.
+
+**Mars hava durumunun canlı kaynağı yok.** 2026-09-07'de iki kaynak da ölçüldü:
+
+```
+api.nasa.gov/insight_weather/  200  son sol 681 = 2020-10-25  (InSight görevi 2022'de bitti)
+api.maas2.apollorion.com       200  son kayıt   = 2023-02-14  (Curiosity REMS, üçüncü parti, donmuş)
+```
+
+Kart bu yüzden önce sol numarasını ve tarihini yazıyor, sonra sıcaklığı; altında
+görevin bittiği tarih duruyor. Altı yıllık bir ölçümü bugünün havası gibi
+göstermek, bu projenin birkaç fazdır temizlediği kusurun aynısı olurdu.
 
 **İstatistik kartları** (`# Statistics`) — YAPILDI. Ortalama deprem büyüklüğü
 ve ISS'in ölçülen yüksekliği stat bar'a eklendi; bar altı yerine sekiz kutucuk,
 dört sütunlu iki satır olarak duruyor.
 
-Bunların hiçbiri "kırık" değil. Arayüz bunları göstereceğini söylemiyor, o yüzden
-kullanıcıya yalan söylenmiyor. Tamamen senin ürün kararın.
+Kalan bildirim kalemleri "kırık" değil: arayüz onları göstereceğini söylemiyor,
+o yüzden kullanıcıya yalan söylenmiyor. Sıradaki faz bu.
 
 ---
 

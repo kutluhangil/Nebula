@@ -959,3 +959,86 @@ test.describe("dashboard stats bar", () => {
     await expect(tile("ISS altitude")).toContainText("km");
   });
 });
+
+test.describe("sky almanac", () => {
+  const CARDS = [
+    "Moon Phase",
+    "Earth Rotation",
+    "Constellation of the Day",
+    "Planet of the Day",
+    "Mars Weather",
+    "Astronomy Fact",
+    "Space Quote",
+  ];
+
+  test("renders every widget with its provenance and its source", async ({
+    page,
+  }) => {
+    await page.goto("/sky");
+
+    for (const name of CARDS) {
+      const card = page.getByRole("region", { name });
+      await expect(card, `${name} card`).toBeVisible();
+
+      // The badge says how the numbers were arrived at, and the footer names
+      // the publication. A card that lost either would be presenting figures
+      // with no way for a reader to check them.
+      await expect(card.locator(".eyebrow").first()).toHaveText(
+        /Computed|Curated|Archive/
+      );
+      const source = card.locator("p.eyebrow").last();
+      await expect(source).not.toBeEmpty();
+    }
+  });
+
+  test("the moon card computes a phase rather than a placeholder", async ({
+    page,
+  }) => {
+    await page.goto("/sky");
+
+    const card = page.getByRole("region", { name: "Moon Phase" });
+    await expect(card).toContainText(
+      /New Moon|Waxing Crescent|First Quarter|Waxing Gibbous|Full Moon|Waning Gibbous|Last Quarter|Waning Crescent/
+    );
+    await expect(card).toContainText(/\d+\.\d% illuminated/);
+    await expect(card).toContainText(/\d,?\d{3},?\d* km/);
+  });
+
+  test("earth rotation names the equator until a latitude is given", async ({
+    page,
+  }) => {
+    await page.goto("/sky");
+
+    const card = page.getByRole("region", { name: "Earth Rotation" });
+    // No geolocation was granted, so the card must say which latitude the
+    // figure belongs to instead of implying it is the viewer's own.
+    await expect(card).toContainText("Ground speed at the equator");
+    await expect(card).toContainText("1,674");
+  });
+
+  test("mars weather is dated and labelled as an archive", async ({
+    page,
+    request,
+  }) => {
+    const mars = await request.get("/api/mars");
+    test.skip(mars.status() !== 200, "NASA InSight unavailable");
+    const { firstUtc } = await mars.json();
+    const year = new Date(firstUtc).getUTCFullYear();
+
+    await page.goto("/sky");
+    const card = page.getByRole("region", { name: "Mars Weather" });
+
+    // The regression this guards: a years-old reading rendered as current
+    // conditions. The sol, its date and the mission's end all have to show.
+    await expect(card.locator(".eyebrow").first()).toHaveText("Archive");
+    await expect(card).toContainText(new RegExp(`Sol \\d+ · .*${year}`));
+    await expect(card).toContainText(/mission ended on/i);
+  });
+
+  test("is reachable from the navigation", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/dashboard");
+    await page.getByRole("navigation").getByRole("link", { name: "Sky" }).click();
+    await expect(page).toHaveURL(/\/sky$/);
+  });
+});

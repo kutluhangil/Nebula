@@ -33,5 +33,6 @@ export const ROUTES = [
   { path: "/launches", changeFrequency: "daily", priority: 0.8 },
   { path: "/timeline", changeFrequency: "hourly", priority: 0.7 },
   { path: "/space", changeFrequency: "daily", priority: 0.7 },
+  { path: "/sky", changeFrequency: "daily", priority: 0.7 },
   { path: "/news", changeFrequency: "hourly", priority: 0.7 },
 ] as const;

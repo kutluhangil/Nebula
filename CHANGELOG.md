@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-07 — The sky almanac
+
+### Added
+- A `/sky` route carrying seven of the widgets the original specification listed and the app had never built: moon phase, Earth's rotation, constellation of the day, planet of the day, an astronomy fact, a space quote and InSight's Mars weather. The eighth, sunrise and sunset, already shipped inside the dashboard's weather widget and was left there.
+- Every card on the page declares how its numbers were arrived at — computed, curated or archive — and names the publication they came from. The badge and the attribution live in the shared card frame rather than in each widget, so neither can be forgotten on one of them.
+- Moon phase and Earth's rotation are computed from the clock. The moon series comes from `suncalc`, verified against two events with known dates: the total lunar eclipse of 21 January 2019 returns phase 0.5010 at illumination 1.000, and the total solar eclipse of 21 August 2017 returns phase 0.0012 at illumination 0.000. Surface speed uses the WGS84 prime vertical radius rather than a sphere, giving 1674.364 km/h at the equator.
+- `/api/mars`, proxying NASA's InSight feed, and five tests: the route hands the card a date and an archival flag, the seven cards each show a provenance badge and a source, the moon card computes a phase rather than a placeholder, the rotation card names the equator until a latitude is given, and the Mars card is dated and labelled as an archive. All five fail against the previous code.
+
+### Changed
+- Curated records are chosen by whole days since the epoch, not at random. The server and the client compute the same index, so there is no hydration mismatch, and "of the day" stays true for the whole UTC day.
+
+### Notes
+- Mars weather has no live source. NASA's InSight endpoint was probed on 7 September 2026 and still serves sol 681 from 25 October 2020; the third-party MAAS2 mirror of Curiosity's REMS data is frozen at 14 February 2023. The card therefore leads with the sol and its date and states that the mission ended, rather than presenting a six-year-old reading as today's weather.
+
 ## 2026-09-07 — Two measured stats, and the numbers the report invented
 
 ### Added

@@ -294,6 +294,29 @@ test.describe("health", () => {
   });
 });
 
+test.describe("mars", () => {
+  test("reports InSight's last sol with the date attached", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/mars");
+    await skipIfUpstreamDown(response, "NASA InSight");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+
+    expect(Number.isInteger(body.sol)).toBe(true);
+    expect(body.temperatureC.average).toEqual(expect.any(Number));
+
+    // The reading is years old. The route has to hand the card a date and an
+    // archival flag, or the card has no way to keep from presenting it as the
+    // weather on Mars today.
+    expect(body.archival).toBe(true);
+    expect(Number.isNaN(Date.parse(body.firstUtc))).toBe(false);
+    expect(Number.isNaN(Date.parse(body.missionEndedOn))).toBe(false);
+    expect(Date.parse(body.firstUtc)).toBeLessThan(Date.now());
+  });
+});
+
 test.describe("page metadata", () => {
   // Every page is a client component and so cannot export metadata. Without a
   // per-route layout they all inherited the root's canonical "/", telling
@@ -305,6 +328,7 @@ test.describe("page metadata", () => {
     "/launches": "SpaceX Launches",
     "/timeline": "Unified Timeline",
     "/space": "Space Observatory",
+    "/sky": "Sky Almanac",
     "/news": "Space News",
   };
 

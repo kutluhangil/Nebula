@@ -16,6 +16,7 @@ import {
   Star,
   Newspaper,
   Home,
+  Moon,
 } from "lucide-react";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Globe },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/space", label: "Space", icon: Satellite },
+  { href: "/sky", label: "Sky", icon: Moon },
   { href: "/earth", label: "Earth", icon: Activity },
   { href: "/launches", label: "Launches", icon: Rocket },
   { href: "/timeline", label: "Timeline", icon: Zap },
