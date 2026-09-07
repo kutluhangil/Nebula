@@ -202,6 +202,33 @@ test.describe("ai report", () => {
     expect(response.status()).toBe(400);
     expect((await response.json()).error).toContain("Invalid earthquakeCount");
   });
+
+  test("the keyless report invents no ISS telemetry", async ({ request }) => {
+    // With a key the text comes from the model, which this assertion cannot
+    // pin down; the template is what the deployed app serves by default.
+    test.skip(
+      Boolean(process.env.OPENAI_API_KEY),
+      "OPENAI_API_KEY is set, so the report is model-generated"
+    );
+
+    const response = await request.post("/api/ai-report", {
+      // The route buckets its 10-per-minute budget by client address. This
+      // test is not exercising that limit, so it takes a bucket of its own
+      // instead of draining the one the browser tests share.
+      headers: { "x-forwarded-for": "203.0.113.7" },
+      data: { earthquakeCount: 42 },
+    });
+    expect(response.status()).toBe(200);
+
+    const { report } = await response.json();
+    expect(report).toContain("42");
+
+    // The template asserted a nominal 408 km / 27,600 km/h orbit, which
+    // contradicted the measured altitude and velocity the stats bar prints
+    // from /api/iss on the same screen.
+    expect(report).not.toMatch(/408\s?km/i);
+    expect(report).not.toMatch(/27[,.]?600/);
+  });
 });
 
 test.describe("health", () => {

@@ -85,8 +85,11 @@ export async function POST(request: Request) {
           ? `Only ${earthquakeCount} notable earthquakes recorded this week — seismic activity is relatively calm.`
           : "Seismic monitoring services are currently updating. Check back shortly for earthquake data.";
 
+      // The ISS sentence used to assert a nominal 408 km / 27,600 km/h orbit.
+      // Those figures are invented here and contradicted the measured altitude
+      // and velocity the stats bar prints from /api/iss on the same screen.
       return NextResponse.json({
-        report: `Planet Intelligence Report — ${date}. ${quakeDesc} The International Space Station continues its orbit at a nominal 408km altitude, completing roughly 15.5 orbits per day at 27,600 km/h. Live solar weather is tracked separately on the Space Weather panel. Monitoring all Earth and space systems in real-time.`,
+        report: `Planet Intelligence Report — ${date}. ${quakeDesc} International Space Station telemetry is reported live on the ISS Tracker panel, and solar weather is tracked separately on the Space Weather panel. Monitoring all Earth and space systems in real-time.`,
       });
     }
 
@@ -103,11 +106,11 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You are NEBULA, a highly advanced Planet Intelligence AI. You generate concise, professional, and slightly futuristic daily planet reports. Keep the report to exactly 2-3 sentences. Focus on planetary status, recent data, and scientific tone.",
+              "You are NEBULA, a highly advanced Planet Intelligence AI. You generate concise, professional, and slightly futuristic daily planet reports. Keep the report to exactly 2-3 sentences. Focus on planetary status, recent data, and scientific tone. Use only the figures given to you; never state an altitude, velocity, orbit count or any other measurement that was not provided.",
           },
           {
             role: "user",
-            content: `Generate a daily planet report. We have recorded ${earthquakeCount} notable earthquakes recently. Mention orbital systems (like ISS) and general Earth metrics. Make it sound like a system briefing.`,
+            content: `Generate a daily planet report. We have recorded ${earthquakeCount} notable earthquakes recently. That count is the only measurement you have; refer to orbital systems and Earth metrics qualitatively rather than inventing numbers for them. Make it sound like a system briefing.`,
           },
         ],
         temperature: 0.5,

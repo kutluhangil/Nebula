@@ -73,6 +73,24 @@ function mapLaunch(l: LL2Launch, upcoming: boolean): MappedLaunch {
   };
 }
 
+/**
+ * Launch Library throttles anonymous callers per IP. Its 429 carries both a
+ * `retry-after` header and a body saying when the window reopens; dropping
+ * them turned a quota problem into an unexplained "failed: 429".
+ */
+async function assertOk(res: Response, label: string): Promise<void> {
+  if (res.ok) return;
+
+  const body = await res.text().catch(() => "");
+  const retryAfter = res.headers.get("retry-after");
+
+  throw new Error(
+    `Launch Library ${label} responded ${res.status}${
+      retryAfter ? ` (retry after ${retryAfter}s)` : ""
+    }: ${body.slice(0, 200)}`
+  );
+}
+
 export async function GET() {
   try {
     const base = "https://ll.thespacedevs.com/2.2.0/launch";
@@ -81,12 +99,8 @@ export async function GET() {
       fetch(`${base}/upcoming/?limit=6&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
     ]);
 
-    if (!prevRes.ok) {
-      throw new Error(`Launch Library previous failed: ${prevRes.status}`);
-    }
-    if (!upRes.ok) {
-      throw new Error(`Launch Library upcoming failed: ${upRes.status}`);
-    }
+    await assertOk(prevRes, "previous");
+    await assertOk(upRes, "upcoming");
 
     const prev = await prevRes.json();
     const up = await upRes.json();

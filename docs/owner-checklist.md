@@ -6,7 +6,7 @@ Sırayla değil, öncelik sırasına göre yazıldı.
 
 ---
 
-## 1. NASA API anahtarı — TAMAM (yerelde)
+## 1. NASA API anahtarı — TAMAM (yerel + Vercel)
 
 Anahtar `.env.local` dosyasına yazıldı. `.env.local` `.gitignore` kapsamında,
 commit edilmiyor. Doğrulandı:
@@ -15,49 +15,58 @@ commit edilmiyor. Doğrulandı:
 - NASA kota başlığı: `x-ratelimit-limit: 10000` (DEMO_KEY'in saatlik 30'u değil)
 - `tests/api-contract.spec.ts` NASA sözleşme testi artık kendini atlamıyor
 
-**Kalan iş:** aynı anahtarı Vercel'in env store'una da girmen gerekiyor —
-aşağıdaki 2. madde. Yerel `.env.local` deploy'a taşınmaz.
+Vercel env store'una da girildi — aşağıdaki 2. madde. Yerel `.env.local`
+deploy'a taşınmaz, o yüzden ikisi ayrı ayrı gerekiyordu.
 
 ---
 
-## 1b. Launch Library 2 kotası — üretimde risk
+## 1b. Launch Library 2 kotası — ÖLÇÜLDÜ, aksiyon gerekmiyor
 
-`/api/spacex` zaman zaman **502** dönüyor. Sebep kod değil: `ll.thespacedevs.com`
-anonim çağrıları IP başına saatte ~15 istekle sınırlıyor ve limit dolduğunda
-`429` + `retry-after` döndürüyor. Ölçülen yanıt:
+Önceki not bunu "üretimde risk" diye yazmıştı. Ölçünce öyle çıkmadı.
+
+`ll.thespacedevs.com` anonim çağrıları IP başına saatte ~15 istekle sınırlıyor.
+`/api/spacex` iki upstream isteği yapıyor (previous + upcoming) ve ikisi de
+`next: { revalidate: 3600 }` ile Next data cache'e giriyor. Üretim build'inde
+ölçüldü:
 
 ```
-HTTP/2 429
-retry-after: 648
-{"detail":"Request was throttled. Expected available in 648 seconds."}
+call 1 http=200 t=1.489868   <- upstream
+call 2 http=200 t=0.004016   <- data cache
+call 3 http=200 t=0.002687
 ```
 
-Uygulama bunu doğru raporluyor (kart "Launch data is unavailable right now"
-diyor, footer'da `Launch Library 2 — DOWN` yazıyor), ama tek bir Vercel
-bölgesinden gelen tüm trafik aynı IP'yi paylaşacağı için üretimde bu limit
-düzenli olarak dolabilir.
+Yani trafikten bağımsız olarak saatte **2** upstream isteği. Limitin çok
+altında. `withTimeout`'un eklediği `AbortSignal` cache'i devre dışı bırakmıyor;
+Next 16 revalidate sırasında signal'i düşürüp yanıtı cache'liyor
+(`node_modules/next/dist/server/lib/patch-fetch.js`).
 
-**Seçenekler — senin kararın:**
+Geliştirirken görülen 429'lar yerel kaynaklıydı: her doğrulamada `rm -rf .next`
+data cache'i siliyor ve Playwright rotayı arka arkaya çağırıyor.
 
-1. https://thespacedevs.com/llapi üzerinden ücretsiz hesap açıp API anahtarı
-   almak (kota belirgin şekilde yükseliyor). Kodda `Authorization` başlığı
-   eklemek gerekir; anahtar gelirse ben yaparım.
-2. Rotanın `revalidate` süresini 1 saatten uzatmak (şu an 3600 sn).
-3. Olduğu gibi bırakmak — feed düştüğünde arayüz bunu dürüstçe söylüyor.
+**Sonuç:** LL2 anahtarı gerekmiyor, `revalidate` uzatması gerekmiyor. Yapılan
+tek değişiklik, rotanın 429'u artık dürüstçe raporlaması: upstream gövdesi ve
+`retry-after` hata mesajına giriyor (önceden sadece `failed: 429` yazıyordu).
 
 ---
 
-## 2. Vercel'e deploy ederken environment variable'lar
+## 2. Vercel environment variable'ları — NASA anahtarı TAMAM
 
-Yerelde `.env.local` yeter, ama deploy'da Vercel'in kendi env store'una girmen
-gerekiyor. Panelden ya da CLI'dan:
+`NASA_API_KEY` hem Production hem Preview ortamına girildi:
 
 ```
-vercel env add NASA_API_KEY production
-vercel env add NASA_API_KEY preview
+ name            value       environments
+ NASA_API_KEY    Encrypted   Preview
+ NASA_API_KEY    Encrypted   Production
 ```
 
-- `NASA_API_KEY` — zorunlu (yukarıdaki madde).
+**Bilinmesi gereken:** Vercel env değişkenini deployment'a build anında bağlar.
+Production değişkeni, o an çalışan prod deployment ile aynı dakikada eklendi;
+anahtarın çalışan deployment'a geçtiği doğrulanamadı (`/api/apod` 200 dönüyor
+ama `DEMO_KEY` de 200 döner, ikisi dışarıdan ayırt edilemiyor). Bir sonraki
+deploy'da kesinleşecek — emin olmak istersen prod'u redeploy et.
+
+Kalan opsiyonel değişkenler:
+
 - `NEXT_PUBLIC_SITE_URL` — yalnızca özel alan adı kullanacaksan. Vercel'in kendi
   host'unda otomatik türetiliyor. Canonical URL'ler, sitemap ve Open Graph
   görselleri bunu okuyor; özel domain'de boş bırakırsan metadata yanlış adresi
@@ -132,9 +141,9 @@ Ay evresi · Mars hava durumu · Günün takımyıldızı · Günün gezegeni ·
 Rastgele astronomi bilgisi · Günün uzay sözü · Dünya'nın dönüşü ·
 Gün doğumu / batımı
 
-**İstatistik kartları** (`# Statistics`) — mevcut stat bar'da olmayan ikisi:
-- Ortalama deprem büyüklüğü
-- ISS'in Dünya'dan uzaklığı
+**İstatistik kartları** (`# Statistics`) — YAPILDI. Ortalama deprem büyüklüğü
+ve ISS'in ölçülen yüksekliği stat bar'a eklendi; bar altı yerine sekiz kutucuk,
+dört sütunlu iki satır olarak duruyor.
 
 Bunların hiçbiri "kırık" değil. Arayüz bunları göstereceğini söylemiyor, o yüzden
 kullanıcıya yalan söylenmiyor. Tamamen senin ürün kararın.

@@ -9,17 +9,21 @@ import {
   AlertTriangle,
   Zap,
   Globe,
+  Waves,
+  Orbit,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
 
 interface StatsBarProps {
   /** Undefined until the earthquake feed answers, so loading reads as "—". */
   earthquakeCount: number | undefined;
+  /** Undefined while loading and on a feed with no reviewed magnitudes. */
+  averageMagnitude: number | undefined;
 }
 
 interface Stat {
   icon: typeof Activity;
-  /** Short enough to sit on one line at a sixth of the header width. */
+  /** Short enough to sit on one line at a quarter of the header width. */
   label: string;
   value: string | number;
   /** Rendered a step down from the value, so "27,527" carries the weight. */
@@ -28,7 +32,10 @@ interface Stat {
   state?: "alert" | "warn";
 }
 
-export function StatsBar({ earthquakeCount }: StatsBarProps) {
+export function StatsBar({
+  earthquakeCount,
+  averageMagnitude,
+}: StatsBarProps) {
   const { data: spacex } = useQuery({
     queryKey: ["spacex"],
     queryFn: () => fetchJson<{ upcoming?: unknown[] }>("/api/spacex"),
@@ -46,7 +53,8 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
   // key matches the tracker's, so React Query serves both from one request.
   const { data: iss } = useQuery({
     queryKey: ["iss"],
-    queryFn: () => fetchJson<{ velocity?: number }>("/api/iss"),
+    queryFn: () =>
+      fetchJson<{ velocity?: number; altitude?: number }>("/api/iss"),
     refetchInterval: 5000,
   });
 
@@ -70,10 +78,23 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
       value: earthquakeCount ?? "—",
     },
     {
+      icon: Waves,
+      label: "Avg mag · 7d",
+      // One decimal: the feed's own magnitudes carry no more precision.
+      value: averageMagnitude !== undefined ? averageMagnitude.toFixed(1) : "—",
+    },
+    {
       icon: Satellite,
       label: "ISS speed",
       value: iss?.velocity ? Math.round(iss.velocity).toLocaleString() : "—",
       unit: iss?.velocity ? "km/h" : undefined,
+    },
+    {
+      icon: Orbit,
+      label: "ISS altitude",
+      // Measured altitude above the ellipsoid, not the nominal 408 km.
+      value: iss?.altitude ? Math.round(iss.altitude).toLocaleString() : "—",
+      unit: iss?.altitude ? "km" : undefined,
     },
     {
       icon: Rocket,
@@ -109,7 +130,7 @@ export function StatsBar({ earthquakeCount }: StatsBarProps) {
   } as const;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {stats.map((stat, i) => {
         const Icon = stat.icon;
         return (

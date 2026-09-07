@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-07 — Two measured stats, and the numbers the report invented
+
+### Added
+- The dashboard stat bar carries the two tiles the original specification listed and the bar never had: mean magnitude over the same M4.0+ / 7-day feed the count comes from, and the ISS's measured altitude. Events USGS has not finished reviewing carry a null magnitude and are dropped from the mean rather than averaged in as zero. Eight tiles sit as two rows of four; six across left no room for a label.
+- Two regression tests, both failing against the previous code: the stat bar prints a real average magnitude and a three-digit ISS altitude, and the keyless daily report states no ISS telemetry.
+
+### Fixed
+- The daily planet report asserted the ISS orbits "at a nominal 408km altitude ... at 27,600 km/h". Both figures were invented in the template and contradicted the measured altitude and velocity the stat bar reads from `/api/iss` on the same screen. The sentence now points at the panels that carry live telemetry, and the model prompt forbids stating a measurement it was not given.
+- A Launch Library 2 rejection was reported as `Launch Library previous failed: 429`, discarding the response body and the `retry-after` header that say when the quota window reopens. Both are now in the error, as they already were for the NASA routes.
+- The test that asserts the report fires exactly once was counting retries. Twenty tests in the suite open the dashboard, each posting one report, which is past the route's own 10-per-minute budget; the rejected calls came back as 429s the client retried. That test and the two new ones now take their own rate-limit bucket instead of draining the shared one.
+
+### Changed
+- The Launch Library quota was measured rather than assumed. `revalidate: 3600` holds — the first call takes 1.5s upstream and the rest are served from the data cache in 3ms — so the route makes two upstream requests an hour against a limit of roughly fifteen. No API key and no longer revalidate window are needed; the 429s seen while developing came from `rm -rf .next` wiping the local data cache between runs.
+
 ## 2026-09-07 — Favorites on the design system, and the scrims
 
 ### Fixed

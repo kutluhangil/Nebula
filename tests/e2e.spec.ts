@@ -366,6 +366,13 @@ test.describe("ai report", () => {
   test("waits for the real earthquake count before generating", async ({
     page,
   }) => {
+    // Twenty tests in this file open the dashboard, and each load posts one
+    // report. That is past the route's own 10-per-minute budget, so the
+    // rejected calls came back as 429s the client retried — three requests
+    // where this test counts one. The limiter buckets by client address, and
+    // this test is not the one exercising it, so it takes a bucket of its own.
+    await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.8" });
+
     const counts: unknown[] = [];
     page.on("request", (request) => {
       if (request.url().includes("/api/ai-report")) {
@@ -915,5 +922,40 @@ test.describe("favorites", () => {
     await expect(
       page.getByRole("img", { name: "Saved astronomy picture" })
     ).toHaveCount(0);
+  });
+});
+
+test.describe("dashboard stats bar", () => {
+  test("prints measured average magnitude and ISS altitude", async ({
+    page,
+    request,
+  }) => {
+    // Both tiles read live feeds. An outage is not a regression in this repo,
+    // so it is reported as a skip the way the contract suite does it.
+    const quakes = await request.get("/api/earthquakes");
+    const iss = await request.get("/api/iss");
+    test.skip(
+      quakes.status() !== 200 || iss.status() !== 200,
+      "USGS or wheretheiss.at unavailable"
+    );
+
+    // The dashboard also posts to /api/ai-report, which caps itself at 10
+    // calls a minute across the whole run. This test is about the stats bar,
+    // so it does not spend that budget.
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed report." } })
+    );
+
+    await page.goto("/dashboard");
+
+    const tile = (label: string) =>
+      page.locator(".inset-well").filter({ hasText: label });
+
+    // A magnitude with a decimal, not the "—" placeholder.
+    await expect(tile("Avg mag · 7d")).toContainText(/\d\.\d/);
+
+    // Measured altitude in km, three digits for any real ISS orbit.
+    await expect(tile("ISS altitude")).toContainText(/\d{3}/);
+    await expect(tile("ISS altitude")).toContainText("km");
   });
 });

@@ -41,6 +41,16 @@ export default function DashboardPage() {
   // replace, which with an API key set is a paid call on a wrong number.
   const totalQuakes = earthquakeData?.features?.length;
 
+  // Mean magnitude of the same M4.0+ / 7d feed the count comes from. USGS
+  // leaves `mag` null on events it has not finished reviewing, so those are
+  // dropped rather than averaged in as zero.
+  const magnitudes = (earthquakeData?.features ?? [])
+    .map((f) => f.properties.mag)
+    .filter((mag) => Number.isFinite(mag));
+  const averageMagnitude = magnitudes.length
+    ? magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length
+    : undefined;
+
   return (
     <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10 selection:bg-[var(--surface-hover)]">
       <div className="max-w-7xl mx-auto space-y-10 md:space-y-14">
@@ -65,7 +75,10 @@ export default function DashboardPage() {
               Planet <span className="italic text-[var(--text-dim)]">Intelligence</span>
             </h1>
           </div>
-          <StatsBar earthquakeCount={totalQuakes} />
+          <StatsBar
+            earthquakeCount={totalQuakes}
+            averageMagnitude={averageMagnitude}
+          />
         </motion.div>
 
         {/* What is happening now */}
