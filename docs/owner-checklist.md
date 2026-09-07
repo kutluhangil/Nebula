@@ -6,6 +6,29 @@ Sırayla değil, öncelik sırasına göre yazıldı.
 
 ---
 
+## ŞU AN BEKLEYEN İŞLER (2026-09-07)
+
+Aşağıdaki maddelerin dışında açık iş yok. Kod tarafı kapalı: Faz 1-9 commit
+edildi (son `528cdd4`), `npm run build` temiz, Playwright 104 geçti / 2 atladı
+(atlayanlar LL2 429, yerel kota — 1b maddesi).
+
+- [ ] **Node'u yükselt** — yerelde `v24.12.0`, npm 12.0.1 bunu desteklemiyor ve
+      her komutta uyarı basıyor. `nvm install 24 && nvm use 24`. Ayrıntı: madde 3.
+- [ ] **Vercel CLI'yi güncelle** — `58.4.4` kurulu, güncel `59.11.7`.
+      `npm i -g vercel@latest`. Ayrıntı: madde 4.
+- [ ] **Karar: `package.json` içine `engines` alanı eklensin mi?** Şu an yok;
+      CI ve Vercel kendi varsayılanını seçiyor (Vercel varsayılanı Node 24 LTS).
+      Sabitlemek sürüm sürprizini keser, karşılığında Node her yükseldiğinde
+      elle bakım ister. Karar sende — "ekle" dersen eklenir.
+
+İkisi de global kurulum olduğu için senin terminalinden koşman gerekiyor.
+
+Sadece bilgi olarak izlenen, aksiyon istemeyen maddeler: Esri tile kotası
+(madde 5) ve RainViewer ücretsiz katmanının ticari olmayan kullanım + atıf
+şartı (madde 6). İkisi de ancak site ciddi trafik almaya başlarsa geri gelir.
+
+---
+
 ## 1. NASA API anahtarı — TAMAM (yerel + Vercel)
 
 Anahtar `.env.local` dosyasına yazıldı. `.env.local` `.gitignore` kapsamında,
