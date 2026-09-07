@@ -36,3 +36,12 @@ export const EVENT_LAYERS: Record<
 };
 
 export const EVENT_CATEGORIES = Object.keys(EVENT_LAYERS) as EventCategory[];
+
+/**
+ * Map layers that do not come from EONET. They are declared beside the EONET
+ * ones so the legend, the toggles and the map draw from a single list of
+ * colours, but each reads its own source: radar from RainViewer, tsunami from
+ * the flag USGS already sets on a quake.
+ */
+export const RADAR_LAYER = { label: "Weather radar", color: "#3fdfe8" } as const;
+export const TSUNAMI_LAYER = { label: "Tsunami alerts", color: "#4aa8ff" } as const;

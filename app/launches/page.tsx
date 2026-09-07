@@ -30,10 +30,77 @@ interface Launch {
   rocket: string;
 }
 
+interface LaunchRecord {
+  sampled: number;
+  success: number;
+  failure: number;
+  unresolved: number;
+  earliestUtc: string | null;
+  latestUtc: string | null;
+}
+
 interface SpaceXData {
   /** Null when the feed reports no previous launch. */
   latest: Launch | null;
   upcoming: Launch[];
+  record: LaunchRecord;
+}
+
+/**
+ * The success record over the last launches the feed returned.
+ *
+ * It states the window it was taken from. "20 of 20" over a named date range is
+ * a fact about this feed; a bare "100% success rate" would read as SpaceX's
+ * lifetime record, which this app has not measured.
+ */
+function SuccessRecord({ record }: { record: LaunchRecord }) {
+  if (!record.sampled) return null;
+
+  // UTC, like the timestamps it summarises. Formatting the window in the
+  // reader's zone shifts a launch across a date boundary and makes the range
+  // disagree with the launch dates listed below it.
+  const utcDay = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+  const range =
+    record.earliestUtc && record.latestUtc
+      ? `${utcDay(record.earliestUtc)} — ${utcDay(record.latestUtc)}`
+      : null;
+
+  return (
+    <div className="mb-8 inset-well px-4 py-3.5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="eyebrow !text-[9px]">Success record</span>
+        {range && (
+          <span className="text-[11px] text-[var(--text-faint)]">{range}</span>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+        <span className="font-mono tabular text-2xl leading-none font-medium text-[var(--text)]">
+          {record.success}
+          <span className="text-[var(--text-faint)]"> / {record.sampled}</span>
+        </span>
+        <span className="text-xs text-[var(--text-dim)]">
+          succeeded over the last {record.sampled} launches
+        </span>
+        {record.failure > 0 && (
+          <span className="text-xs text-[var(--accent-red)]">
+            {record.failure} failed
+          </span>
+        )}
+        {record.unresolved > 0 && (
+          <span className="text-xs text-[var(--text-faint)]">
+            {record.unresolved} not classified by Launch Library
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function Countdown({ targetDate }: { targetDate: string }) {
@@ -125,6 +192,8 @@ export default function LaunchesPage() {
             Real-time launch data · Launch Library 2
           </p>
         </motion.div>
+
+        {data?.record && <SuccessRecord record={data.record} />}
 
         {isError && (
           <div className="glass-card flex items-center justify-center">

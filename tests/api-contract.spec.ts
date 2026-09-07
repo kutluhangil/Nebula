@@ -294,6 +294,7 @@ test.describe("health", () => {
     // Every upstream the app depends on has to appear, or the footer's status
     // list quietly under-reports what can break.
     expect(body.sources.map((s: { id: string }) => s.id)).toContain("crew");
+    expect(body.sources.map((s: { id: string }) => s.id)).toContain("radar");
   });
 });
 
@@ -389,5 +390,66 @@ test.describe("astronauts", () => {
         expect(person.daysInSpace).toBe(expected);
       }
     }
+  });
+});
+
+test.describe("radar", () => {
+  test("names a current frame the map can build tiles from", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/radar");
+    await skipIfUpstreamDown(response, "RainViewer");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(body.tileBase).toContain("rainviewer.com");
+    expect(body.source).toBe("RainViewer");
+
+    // A radar frame that is hours old would be weather, not current weather.
+    const age = Date.now() - Date.parse(body.observedAt);
+    expect(Number.isNaN(age)).toBe(false);
+    expect(age).toBeLessThan(3 * 60 * 60 * 1000);
+
+    // The url the map appends its tile coordinates to has to actually serve one.
+    const tile = await request.get(`${body.tileBase}/256/2/1/1/2/1_1.png`);
+    expect(tile.status()).toBe(200);
+  });
+});
+
+test.describe("launch record", () => {
+  test("counts outcomes over a window it names", async ({ request }) => {
+    const response = await request.get("/api/spacex");
+    await skipIfUpstreamDown(response, "Launch Library 2");
+    expect(response.status()).toBe(200);
+
+    const { record } = await response.json();
+    expect(record.sampled).toBeGreaterThan(0);
+    expect(record.sampled).toBeLessThanOrEqual(20);
+
+    // Every launch lands in exactly one column. Folding the unclassified ones
+    // into "success" is how a record starts overstating itself.
+    expect(record.success + record.failure + record.unresolved).toBe(
+      record.sampled
+    );
+
+    // The counts have to agree with the rows they summarise. Folding the
+    // unclassified launches into "success" keeps the sum right and still
+    // overstates the record, so the sum alone would not catch it.
+    const previous = (await response.json()).previous as {
+      success: boolean | null;
+    }[];
+    expect(previous.length).toBe(record.sampled);
+    expect(previous.filter((l) => l.success === true).length).toBe(record.success);
+    expect(previous.filter((l) => l.success === false).length).toBe(record.failure);
+    expect(previous.filter((l) => l.success === null).length).toBe(
+      record.unresolved
+    );
+
+    // The window is part of the claim, so it has to be present and ordered.
+    expect(Date.parse(record.earliestUtc)).not.toBeNaN();
+    expect(Date.parse(record.latestUtc)).not.toBeNaN();
+    expect(Date.parse(record.earliestUtc)).toBeLessThanOrEqual(
+      Date.parse(record.latestUtc)
+    );
   });
 });

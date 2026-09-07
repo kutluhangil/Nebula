@@ -12,6 +12,7 @@ const PROBES = [
   { id: "eonet", label: "NASA EONET", path: "/api/events?category=wildfires", href: "https://eonet.gsfc.nasa.gov/" },
   { id: "news", label: "Spaceflight News", path: "/api/news", href: "https://spaceflightnewsapi.net/" },
   { id: "crew", label: "ISS Crew Roster", path: "/api/astronauts", href: "https://github.com/corquaid/international-space-station-APIs" },
+  { id: "radar", label: "RainViewer Radar", path: "/api/radar", href: "https://www.rainviewer.com/" },
 ] as const;
 
 const PROBE_TIMEOUT_MS = 8000;

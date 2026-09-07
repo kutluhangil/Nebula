@@ -1484,3 +1484,147 @@ test.describe("universal search", () => {
     await popup.close();
   });
 });
+
+test.describe("map layers", () => {
+  const TSUNAMI_QUAKES = {
+    features: [
+      {
+        id: "t1",
+        properties: {
+          mag: 7.1,
+          place: "Kermadec Islands region",
+          time: Date.parse("2026-09-05T10:00:00Z"),
+          tsunami: 1,
+        },
+        geometry: { coordinates: [-177.2, -29.5, 33.4] },
+      },
+      {
+        id: "t2",
+        properties: {
+          mag: 5.4,
+          place: "off the coast of Chile",
+          time: Date.parse("2026-09-04T10:00:00Z"),
+          tsunami: 0,
+        },
+        geometry: { coordinates: [-71.4, -33.1, 42.0] },
+      },
+    ],
+  };
+
+  test("the weather radar layer draws real radar tiles and credits them", async ({
+    page,
+  }) => {
+    const tiles: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("rainviewer.com")) tiles.push(request.url());
+    });
+
+    await page.goto("/earth");
+    await page.getByRole("button", { name: /Weather radar/i }).click();
+
+    // The frame time and the attribution are part of the layer: a radar
+    // picture with no observation time is undated weather.
+    await expect(page.getByText(/RADAR \d{2}:\d{2}Z · RAINVIEWER/i)).toBeVisible();
+    await expect.poll(() => tiles.length).toBeGreaterThan(0);
+  });
+
+  test("a dead radar feed is named instead of drawing nothing", async ({
+    page,
+  }) => {
+    await breakRoute(page, "/api/radar");
+
+    await page.goto("/earth");
+    await page.getByRole("button", { name: /Weather radar/i }).click();
+
+    // Clear skies over the entire planet and a broken feed look identical.
+    await expect(page.getByText("Simulated upstream failure")).toBeVisible();
+  });
+
+  test("the tsunami layer counts the events USGS flagged, not the big ones", async ({
+    page,
+  }) => {
+    await page.route("**/api/earthquakes", (route) =>
+      route.fulfill({ status: 200, json: TSUNAMI_QUAKES })
+    );
+
+    await page.goto("/earth");
+    const toggle = page.getByRole("button", { name: /Tsunami alerts/i });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    await toggle.click();
+    // One of the two quakes carries the flag. The M5.4 does not, and is not
+    // promoted into the layer by being an earthquake near a coast. The rings
+    // are counted, not the toggle's label: the label is computed separately
+    // and would keep reading "1" over a layer drawing something else.
+    await expect(toggle).toContainText("1");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("path.tsunami-ring")).toHaveCount(1);
+  });
+});
+
+test.describe("solar storm stat", () => {
+  test("prints the storm count NOAA issued, separate from the Kp reading", async ({
+    page,
+  }) => {
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed report." } })
+    );
+    await page.route("**/api/solar", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          kpIndex: 3,
+          observedAt: "2026-09-07T12:00:00Z",
+          auroraProbability: 12,
+          auroraObservedAt: "2026-09-07T12:00Z",
+          geoStorms: 2,
+          solarFlares: 0,
+          source: "Stub",
+        },
+      })
+    );
+
+    await page.goto("/dashboard");
+
+    const tile = (label: string) =>
+      page.locator(".inset-well").filter({ hasText: label });
+
+    // A quiet Kp with storms issued earlier in the day is exactly the case a
+    // single "Kp index" tile cannot express.
+    await expect(tile("Kp index")).toContainText("3");
+    await expect(tile("Solar storms")).toContainText("2");
+  });
+});
+
+test.describe("launch success record", () => {
+  test("states the window its counts were taken from", async ({ page }) => {
+    await page.route("**/api/spacex", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          latest: null,
+          upcoming: [],
+          record: {
+            sampled: 20,
+            success: 18,
+            failure: 1,
+            unresolved: 1,
+            earliestUtc: "2026-07-21T21:15:00Z",
+            latestUtc: "2026-09-06T14:26:54Z",
+          },
+        },
+      })
+    );
+
+    await page.goto("/launches");
+    const record = page.locator(".inset-well").filter({ hasText: "Success record" });
+
+    // "18 / 20 over a named range" rather than a bare 90%, which would read as
+    // SpaceX's lifetime record — a number this app has not measured.
+    await expect(record).toContainText("18");
+    await expect(record).toContainText("/ 20");
+    await expect(record).toContainText("Jul 21, 2026 — Sep 6, 2026");
+    await expect(record).toContainText("1 failed");
+    await expect(record).toContainText("1 not classified");
+  });
+});

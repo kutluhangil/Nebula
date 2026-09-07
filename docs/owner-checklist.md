@@ -125,10 +125,16 @@ sadece bilmen için.
 ## 6. Kalan ürün kapsamı — KAPANDI
 
 `docs/Prompt.md` (507 satırlık orijinal spesifikasyon) içinde arayüzün hiç vaat
-etmediği, dolayısıyla hata sayılmayan ama yapılmamış özellikler vardı. İstatistik
-kartları, ek widget'lar, bildirimler ve evrensel arama — dördü de kapandı.
-(Önceki notun "geriye sadece bildirimler kaldı" cümlesi eksikti; arama kalemi
-gözden kaçmıştı.)
+etmediği, dolayısıyla hata sayılmayan ama yapılmamış özellikler vardı.
+İstatistik kartları, ek widget'lar, bildirimler, evrensel arama ve son dört
+kalem (aşağıda) — hepsi kapandı.
+
+**Not, dürüstlük adına:** bu bölüm iki kez eksik bilgi verdi. Önce "geriye
+sadece bildirimler kaldı" dedi, arama kalemi gözden kaçmıştı. Sonra "kalem
+kalmadı" dedi, oysa dört kalem daha vardı. Bu yüzden spesifikasyon satır satır
+kodla karşılaştırıldı; sonuç tablosu
+`docs/superpowers/specs/2026-09-07-remaining-spec-items-design.md` içinde. Şimdi
+söylenen "kapandı", tahmin değil o karşılaştırmaya dayanıyor.
 
 **Bildirimler** (`# Notifications`) — YAPILDI. Dört kaynak var, her biri
 watchlist kartından tek tek açılıp kapanıyor:
@@ -148,6 +154,30 @@ Sınır aynı ve kart hâlâ yazıyor: **uyarılar yalnızca sekme açıkken ça
 Service worker ya da sunucu tarafı push yok. Tarayıcı bildirimleri site için
 engellemişse kart bunu da söylüyor — buton yeniden izin isteyemez, tek yol
 tarayıcının kendi site ayarları.
+
+**Son dört kalem** — YAPILDI.
+
+- **Hava radarı katmanı** (`# Earth Dashboard`) — Open-Meteo nokta tahmini
+  veriyor, karo değil; harita katmanı olamaz. RainViewer anahtarsız yağış radarı
+  karosu veriyor, 2026-09-07'de ölçüldü (index 200, son kare 2026-09-07, z3
+  karosu 17 KB PNG). Kare yolları ~10 dakikada bir değişiyor, o yüzden
+  `/api/radar` güncel kareyi okuyor; harita gözlem saatini basıyor ve
+  RainViewer'ı kredilendiriyor. **Bilmen gereken:** RainViewer ücretsiz katmanı
+  ticari olmayan kullanım için ve atıf şart — atıf haritada duruyor. Trafik
+  ciddileşirse Esri maddesindeki (5) gibi tekrar bakılacak bir kalem.
+- **Tsunami katmanı** — USGS'in kendi `tsunami` bayrağını taşıyan olaylar
+  halkalanıyor. Büyüklük ya da kıyıya yakınlık bir depremi bu katmana sokmuyor.
+- **Aktif solar fırtına kutucuğu** (`# Statistics`) — `/api/solar` NOAA'nın son
+  24 saatte yayınladığı G-ölçeği uyarılarını zaten sayıyordu, kimse basmıyordu.
+  Kp'den ayrı bir gerçek: fırtına bitmiş olabilir ama bugün olmuştur. Dokuz
+  kutucuk dört sütuna bölünmediği için bar 3×3'e geçti.
+- **Fırlatma başarı geçmişi** (`# Main Dashboard / SpaceX`) — `/api/spacex`
+  Launch Library'den bir önceki fırlatma yerine yirmi tanesini istiyor ve kaydı
+  aynı yanıttan hesaplıyor. **Kota etkisi yok:** LL2 kotası istek sayıyor, satır
+  değil; rota hâlâ revalidate başına iki istek yapıyor. Kayıt "N / M" biçiminde
+  ve UTC tarih aralığını yazıyor — çıplak bir yüzde SpaceX'in ömür boyu rekoru
+  gibi okunurdu, bu uygulama onu ölçmedi. Launch Library'nin sınıflandırmadığı
+  fırlatmalar kendi sütununda sayılıyor.
 
 **Ek widget'lar** (`# Extra Widgets`) — YAPILDI. `/sky` rotası (Sky Almanac)
 yedi widget taşıyor: ay evresi, Dünya'nın dönüşü, günün takımyıldızı, günün

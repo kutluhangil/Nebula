@@ -15,6 +15,8 @@ import { FeedError } from "@/components/ui/feed-state";
 import {
   EVENT_CATEGORIES,
   EVENT_LAYERS,
+  RADAR_LAYER,
+  TSUNAMI_LAYER,
   type EventCategory,
   type EventsResponse,
   type NaturalEvent,
@@ -67,6 +69,20 @@ export default function EarthPage() {
       enabled: activeLayers.includes(category),
       staleTime: 1000 * 60 * 30,
     })),
+  });
+
+  // Two layers do not come from EONET: precipitation radar reads RainViewer,
+  // and the tsunami layer reads the flag USGS already sets on a quake.
+  const [showRadar, setShowRadar] = useState(false);
+  const [showTsunamiLayer, setShowTsunamiLayer] = useState(false);
+
+  const radar = useQuery<{ tileBase: string; observedAt: string }>({
+    queryKey: ["radar"],
+    queryFn: () => fetchJson("/api/radar"),
+    enabled: showRadar,
+    // RainViewer publishes a new frame every ten minutes.
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 5,
   });
 
   const naturalEvents: NaturalEvent[] = layerQueries.flatMap(
@@ -248,6 +264,51 @@ export default function EarthPage() {
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => setShowRadar(!showRadar)}
+              aria-pressed={showRadar}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono uppercase tracking-wide transition-colors ${
+                showRadar
+                  ? "border-[var(--text-faint)] text-[var(--text)]"
+                  : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"
+              }`}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: RADAR_LAYER.color,
+                  opacity: showRadar ? 1 : 0.35,
+                }}
+              />
+              {RADAR_LAYER.label}
+              <span className="sr-only">{showRadar ? " (shown)" : " (hidden)"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowTsunamiLayer(!showTsunamiLayer)}
+              aria-pressed={showTsunamiLayer}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono uppercase tracking-wide transition-colors ${
+                showTsunamiLayer
+                  ? "border-[var(--text-faint)] text-[var(--text)]"
+                  : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"
+              }`}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: TSUNAMI_LAYER.color,
+                  opacity: showTsunamiLayer ? 1 : 0.35,
+                }}
+              />
+              {TSUNAMI_LAYER.label}
+              {showTsunamiLayer ? ` · ${tsunamiAlerts.length}` : ""}
+              <span className="sr-only">
+                {showTsunamiLayer ? " (shown)" : " (hidden)"}
+              </span>
+            </button>
+
             {layersLoading && (
               <span className="text-[10px] font-mono uppercase tracking-wide text-[var(--text-faint)]">
                 Loading…
@@ -260,6 +321,21 @@ export default function EarthPage() {
                   : "A layer failed to load"}
               </span>
             )}
+            {/* A radar layer that silently draws nothing is indistinguishable
+                from clear skies over the whole planet. */}
+            {radar.isError && (
+              <span className="text-[10px] text-[#e0483d]" role="status">
+                {radar.error instanceof Error
+                  ? radar.error.message
+                  : "The weather radar layer failed to load"}
+              </span>
+            )}
+            {showRadar && radar.data && (
+              <span className="text-[10px] font-mono uppercase tracking-wide text-[var(--text-faint)]">
+                Radar {new Date(radar.data.observedAt).toISOString().slice(11, 16)}Z
+                {" · RainViewer"}
+              </span>
+            )}
           </div>
           <p className="sr-only" role="status">
             {activeLayers.length === 0
@@ -270,6 +346,8 @@ export default function EarthPage() {
             key={mapFocused ? "focused" : "default"}
             earthquakes={quakes}
             naturalEvents={naturalEvents}
+            radarTileBase={showRadar ? radar.data?.tileBase ?? null : null}
+            highlightTsunami={showTsunamiLayer}
             height={mapFocused ? "calc(100vh - 8rem)" : "500px"}
           />
         </div>

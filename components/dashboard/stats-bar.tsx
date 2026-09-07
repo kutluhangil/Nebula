@@ -11,6 +11,7 @@ import {
   Globe,
   Waves,
   Orbit,
+  Sparkles,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
 
@@ -61,7 +62,11 @@ export function StatsBar({
   const { data: solar } = useQuery({
     queryKey: ["solar"],
     queryFn: () =>
-      fetchJson<{ kpIndex: number; auroraProbability: number }>("/api/solar"),
+      fetchJson<{
+        kpIndex: number;
+        auroraProbability: number;
+        geoStorms: number;
+      }>("/api/solar"),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -122,6 +127,16 @@ export function StatsBar({
       value: solar ? solar.auroraProbability : "—",
       unit: solar ? "%" : undefined,
     },
+    {
+      icon: Sparkles,
+      label: "Solar storms",
+      // G-scale warnings and alerts NOAA issued in the last 24 hours, which is
+      // a different fact from the current Kp: a storm can be over and still
+      // have happened today.
+      value: solar ? solar.geoStorms : "—",
+      unit: solar ? "24h" : undefined,
+      state: solar && solar.geoStorms > 0 ? "alert" : undefined,
+    },
   ];
 
   const stateColor = {
@@ -130,7 +145,7 @@ export function StatsBar({
   } as const;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {stats.map((stat, i) => {
         const Icon = stat.icon;
         return (

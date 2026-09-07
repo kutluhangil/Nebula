@@ -5,7 +5,11 @@ import "leaflet/dist/leaflet.css";
 import { formatDistanceToNow } from "date-fns";
 import { magnitudeColor } from "@/lib/dataviz";
 import { useTheme } from "@/hooks/use-theme";
-import { EVENT_LAYERS, type NaturalEvent } from "@/lib/natural-events";
+import {
+  EVENT_LAYERS,
+  TSUNAMI_LAYER,
+  type NaturalEvent,
+} from "@/lib/natural-events";
 
 interface EarthquakeFeature {
   id: string;
@@ -27,10 +31,15 @@ function getMagRadius(mag: number) {
 export default function EarthquakeMap({
   earthquakes,
   naturalEvents = [],
+  radarTileBase = null,
+  highlightTsunami = false,
   height = "500px",
 }: {
   earthquakes: EarthquakeFeature[];
   naturalEvents?: NaturalEvent[];
+  /** RainViewer frame base from /api/radar. Null when the weather layer is off. */
+  radarTileBase?: string | null;
+  highlightTsunami?: boolean;
   height?: string;
 }) {
   const { theme } = useTheme();
@@ -69,6 +78,46 @@ export default function EarthquakeMap({
           url={`https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${canvas}_Gray_Reference/MapServer/tile/{z}/{y}/{x}`}
           attribution=""
         />
+        {/* Precipitation radar. The frame path rotates every ten minutes, so the
+            key forces Leaflet to drop the old tiles rather than blend two
+            observations into one picture. */}
+        {radarTileBase && (
+          <TileLayer
+            key={radarTileBase}
+            url={`${radarTileBase}/256/{z}/{x}/{y}/2/1_1.png`}
+            opacity={0.6}
+            attribution={
+              'Radar &copy; <a href="https://www.rainviewer.com/">RainViewer</a>'
+            }
+          />
+        )}
+
+        {/* Tsunami ring, drawn under the magnitude discs so it reads as a flag
+            on an event rather than a second event. USGS sets this flag itself;
+            it is not inferred from magnitude here. */}
+        {highlightTsunami &&
+          earthquakes
+            .filter((quake) => quake.properties.tsunami === 1)
+            .map((quake) => {
+              const [lon, lat] = quake.geometry.coordinates;
+              return (
+                <CircleMarker
+                  key={`tsunami-${quake.id}`}
+                  center={[lat, lon]}
+                  radius={getMagRadius(quake.properties.mag) + 7}
+                  fillColor={TSUNAMI_LAYER.color}
+                  color={TSUNAMI_LAYER.color}
+                  weight={2}
+                  opacity={0.9}
+                  fillOpacity={0.08}
+                  interactive={false}
+                  // Named so a test can count the rings themselves rather than
+                  // the toggle's own label, which is computed separately.
+                  className="tsunami-ring"
+                />
+              );
+            })}
+
         {earthquakes.map((quake) => {
           const [lon, lat] = quake.geometry.coordinates;
           const color = magnitudeColor(quake.properties.mag);

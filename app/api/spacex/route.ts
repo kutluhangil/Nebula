@@ -91,11 +91,64 @@ async function assertOk(res: Response, label: string): Promise<void> {
   );
 }
 
+/** How many past launches the success record is computed over. */
+const HISTORY_WINDOW = 20;
+
+interface LaunchRecord {
+  /** How many launches the counts below were taken from. */
+  sampled: number;
+  success: number;
+  failure: number;
+  /** Launches whose outcome Launch Library has not classified either way. */
+  unresolved: number;
+  earliestUtc: string | null;
+  latestUtc: string | null;
+}
+
+/**
+ * The success record over the launches this response already carries.
+ *
+ * The window is reported alongside the counts because "N of M" is the only
+ * honest form: this is the last {@link HISTORY_WINDOW} SpaceX launches, not
+ * the programme's lifetime record, and a bare percentage would imply the
+ * latter. Partial failures and unclassified statuses are counted separately
+ * rather than folded into either column.
+ */
+function buildRecord(launches: LL2Launch[]): LaunchRecord {
+  let success = 0;
+  let failure = 0;
+  let unresolved = 0;
+
+  for (const launch of launches) {
+    const abbrev = launch.status?.abbrev;
+    if (abbrev === "Success") success += 1;
+    else if (abbrev === "Failure") failure += 1;
+    else unresolved += 1;
+  }
+
+  const times = launches
+    .map((launch) => launch.net)
+    .filter((net): net is string => Boolean(net) && !Number.isNaN(Date.parse(net)))
+    .sort();
+
+  return {
+    sampled: launches.length,
+    success,
+    failure,
+    unresolved,
+    earliestUtc: times[0] ?? null,
+    latestUtc: times[times.length - 1] ?? null,
+  };
+}
+
 export async function GET() {
   try {
     const base = "https://ll.thespacedevs.com/2.2.0/launch";
     const [prevRes, upRes] = await Promise.all([
-      fetch(`${base}/previous/?limit=1&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
+      // Twenty rather than one: the success record below is computed from this
+      // same response, so the history costs no extra upstream request against
+      // Launch Library's per-IP quota.
+      fetch(`${base}/previous/?limit=${HISTORY_WINDOW}&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
       fetch(`${base}/upcoming/?limit=6&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
     ]);
 
@@ -105,14 +158,22 @@ export async function GET() {
     const prev = await prevRes.json();
     const up = await upRes.json();
 
-    const latest: MappedLaunch | null = prev.results?.[0]
-      ? mapLaunch(prev.results[0], false)
+    const previous: LL2Launch[] = prev.results ?? [];
+    const latest: MappedLaunch | null = previous[0]
+      ? mapLaunch(previous[0], false)
       : null;
     const upcoming: MappedLaunch[] = (up.results ?? []).map((l: LL2Launch) =>
       mapLaunch(l, true)
     );
 
-    return NextResponse.json({ latest, upcoming });
+    return NextResponse.json({
+      latest,
+      // The launches the record was computed from, so the summary can be
+      // checked against the rows it summarises rather than trusted.
+      previous: previous.map((l) => mapLaunch(l, false)),
+      upcoming,
+      record: buildRecord(previous),
+    });
   } catch (error) {
     console.error("SpaceX API error:", error);
     return NextResponse.json(

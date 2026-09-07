@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-07 — The last four specification items
+
+A line-by-line pass over the original 507-line specification, after the search
+work, turned up four items nothing had built. Every other section was checked
+against the code in the same pass and is built.
+
+### Added
+- Two map layers the Earth dashboard was missing. **Weather** draws RainViewer's keyless precipitation radar through a new `/api/radar` route: the frame paths rotate every ten minutes, so the route reads the current one and the map prints its observation time and credits RainViewer. **Tsunami alerts** rings the events USGS itself flagged — magnitude does not promote a quake into the layer, and neither does a coastal location — and the toggle carries the count.
+- An **active solar storms** stat tile. `/api/solar` already counted the G-scale warnings and alerts NOAA issued in the last 24 hours and nothing surfaced it. It is a different fact from the current Kp, since a storm can be over and still have happened today, so it is its own tile. Nine tiles moved the bar from four columns to three.
+- A **launch success record** on the launches page, reported as "N of M" over a named UTC range. `/api/spacex` now asks Launch Library for twenty previous launches instead of one and computes the record from that same response, so it costs no extra request against the per-IP quota — that quota counts requests, not rows, and the route still makes two per revalidation. Launches Launch Library has not classified are counted in their own column rather than folded into either.
+- The RainViewer frame joins the sources the footer's status list probes.
+- Seven tests, all failing against the previous code: the radar layer draws real tiles and credits them, a dead radar feed is named instead of drawing nothing, the tsunami layer counts the flagged events rather than the big ones, the storms tile prints separately from the Kp reading, the record states its window and its denominators, the radar route names a frame recent enough to be current, and the record's three columns sum to the sample.
+
+### Fixed
+- The success record's date range is formatted in UTC. In the reader's own zone a launch crosses a date boundary and the range disagrees with the launch dates listed under it.
+
 ## 2026-09-07 — Universal search
 
 ### Added
