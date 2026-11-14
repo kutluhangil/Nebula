@@ -1,13 +1,32 @@
 import { NextResponse } from "next/server";
 import { withTimeout, upstreamError } from "@/lib/upstream";
 
-export async function GET() {
+const MIN_APOD_DATE = "1995-06-16";
+
+export async function GET(request: Request) {
   const apiKey = process.env.NASA_API_KEY || "DEMO_KEY";
 
   try {
     const today = new Date().toISOString().split("T")[0];
+    const requested = new URL(request.url).searchParams.get("date");
+    let targetDate = today;
+
+    if (requested !== null) {
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(requested) ||
+        requested > today ||
+        requested < MIN_APOD_DATE
+      ) {
+        return NextResponse.json(
+          { error: `Invalid APOD date: expected YYYY-MM-DD between ${MIN_APOD_DATE} and ${today}` },
+          { status: 400 }
+        );
+      }
+      targetDate = requested;
+    }
+
     const res = await fetch(
-      `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${today}`,
+      `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${targetDate}&thumbs=true`,
       withTimeout({ next: { revalidate: 3600 } })
     );
 

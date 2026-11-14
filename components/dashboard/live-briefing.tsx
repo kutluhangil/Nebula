@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowUpRight, Radio, Rocket, Satellite } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
+import { useLocale } from "@/lib/i18n";
+import { useNow } from "@/hooks/use-now";
 
 interface Earthquake {
   id: string;
@@ -19,14 +21,18 @@ interface IssData {
   iss_position: { latitude: string; longitude: string };
 }
 
-function timeLabel(updatedAt: number, failed: boolean) {
-  if (failed) return "Unavailable";
-  if (!updatedAt) return "Connecting";
-  const seconds = Math.max(0, Math.floor((Date.now() - updatedAt) / 1000));
-  return seconds < 60 ? "Just updated" : `${Math.floor(seconds / 60)}m ago`;
-}
-
 export function LiveBriefing() {
+  const { t, locale } = useLocale();
+  const now = useNow();
+  const timeLabel = (updatedAt: number, failed: boolean) => {
+    if (failed) return t.dashboard.briefing.unavailable;
+    if (!updatedAt || now === null) return t.dashboard.briefing.connecting;
+    const seconds = Math.max(0, Math.floor((now - updatedAt) / 1000));
+    return seconds < 60
+      ? t.dashboard.briefing.justUpdated
+      : `${Math.floor(seconds / 60)}m`;
+  };
+
   const earthquakes = useQuery<{ features: Earthquake[] }>({
     queryKey: ["earthquakes"],
     queryFn: () => fetchJson("/api/earthquakes"),
@@ -44,7 +50,6 @@ export function LiveBriefing() {
   });
 
   const quakeList = earthquakes.data?.features ?? [];
-  // The feed is ordered by time, so the strongest event has to be searched for.
   const largest = quakeList.reduce<(typeof quakeList)[number] | undefined>(
     (max, quake) =>
       !max || quake.properties.mag > max.properties.mag ? quake : max,
@@ -56,57 +61,60 @@ export function LiveBriefing() {
   const lon = Number(iss.data?.iss_position.longitude);
 
   return (
-    <section className="glass-panel overflow-hidden" aria-label="Live situation briefing">
-      <div className="flex flex-col gap-3 border-b border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2.5">
+    <section
+      className="border border-[var(--border)] rounded-xl bg-[var(--surface-1)]/65 overflow-hidden"
+      aria-label={t.dashboard.briefing.eyebrow}
+    >
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+        <div className="flex items-center gap-2">
           <span className="live-dot" />
-          <div>
-            <p className="eyebrow !text-[10px]">Live briefing</p>
-            <p className="mt-0.5 text-sm text-[var(--text-dim)]">A calm read on the feeds reporting in now.</p>
-          </div>
+          <p className="eyebrow !text-[10px]">{t.dashboard.briefing.eyebrow}</p>
         </div>
-        <Link href="/earth" className="btn-ghost !min-h-0 !px-3 !py-2 !text-xs">
-          Open Earth monitor <ArrowUpRight className="h-3.5 w-3.5" />
+        <Link
+          href="/earth"
+          className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)] hover:text-[var(--accent)] transition-colors inline-flex items-center gap-1"
+        >
+          {t.dashboard.briefing.openEarth} <ArrowUpRight className="h-3 w-3" />
         </Link>
       </div>
 
       <div className="grid divide-y divide-[var(--border)] md:grid-cols-3 md:divide-x md:divide-y-0">
         <BriefItem
           icon={Activity}
-          source="USGS · M4+ / 7 days"
+          source="USGS · M4+ / 7d"
           updated={timeLabel(earthquakes.dataUpdatedAt, earthquakes.isError)}
           title={
             earthquakes.isError
-              ? "Seismic feed unavailable"
+              ? t.dashboard.briefing.seismicUnavailable
               : largest
-              ? `${quakeList.length} events, ${majorCount} major`
-              : "Seismic feed connecting"
+              ? `${quakeList.length} ${t.dashboard.briefing.eventsWord}, ${majorCount} ${t.dashboard.briefing.majorWord}`
+              : t.dashboard.briefing.seismicConnecting
           }
           detail={
             earthquakes.isError
-              ? "USGS did not answer; counts are not shown rather than reported as zero."
+              ? t.dashboard.briefing.seismicUnavailableDetail
               : largest
-              ? `Largest: M${largest.properties.mag.toFixed(1)} · ${largest.properties.place}`
-              : "Waiting for the latest verified events."
+              ? `${t.dashboard.briefing.largestPrefix}: M${largest.properties.mag.toFixed(1)} · ${largest.properties.place}`
+              : t.dashboard.briefing.seismicWaiting
           }
         />
         <BriefItem
           icon={Satellite}
-          source="wheretheiss.at · 5 sec"
+          source="wheretheiss.at · 5s"
           updated={timeLabel(iss.dataUpdatedAt, iss.isError)}
           title={
             iss.isError
-              ? "ISS telemetry unavailable"
+              ? t.dashboard.briefing.issUnavailable
               : Number.isFinite(lat)
-              ? `ISS over ${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"}`
-              : "ISS position connecting"
+              ? `${t.dashboard.briefing.issOver} ${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"}`
+              : t.dashboard.briefing.issConnecting
           }
           detail={
             iss.isError
-              ? "wheretheiss.at did not answer."
+              ? t.dashboard.briefing.issUnavailableDetail
               : Number.isFinite(lon)
-              ? `${Math.abs(lon).toFixed(1)}° ${lon >= 0 ? "E" : "W"} · orbital telemetry is live`
-              : "Waiting for orbital telemetry."
+              ? `${Math.abs(lon).toFixed(1)}° ${lon >= 0 ? "E" : "W"} · ${t.dashboard.briefing.orbitalLive}`
+              : t.dashboard.briefing.issWaiting
           }
         />
         <BriefItem
@@ -115,17 +123,20 @@ export function LiveBriefing() {
           updated={timeLabel(launches.dataUpdatedAt, launches.isError)}
           title={
             launches.isError
-              ? "Launch manifest unavailable"
+              ? t.dashboard.briefing.launchUnavailable
               : nextLaunch
               ? nextLaunch.name
-              : "Launch manifest connecting"
+              : t.dashboard.briefing.launchConnecting
           }
           detail={
             launches.isError
-              ? "Launch Library 2 did not answer."
+              ? t.dashboard.briefing.launchUnavailableDetail
               : nextLaunch
-              ? `Next launch ${new Date(nextLaunch.date_utc).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-              : "Waiting for the upcoming manifest."
+              ? `${t.dashboard.briefing.nextLaunchPrefix} ${new Date(nextLaunch.date_utc).toLocaleDateString(
+                  locale === "tr" ? "tr-TR" : "en-US",
+                  { month: "short", day: "numeric", year: "numeric" }
+                )}`
+              : t.dashboard.briefing.launchWaiting
           }
         />
       </div>
@@ -152,7 +163,9 @@ function BriefItem({
         <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-faint)]">
           <Icon className="h-3.5 w-3.5 text-[var(--accent)]" /> {source}
         </span>
-        <span className="shrink-0 text-[10px] text-[var(--text-faint)]">{updated}</span>
+        <span className="shrink-0 text-[10px] font-mono text-[var(--text-faint)]">
+          {updated}
+        </span>
       </div>
       <p className="truncate text-sm font-medium text-[var(--text)]">{title}</p>
       <p className="mt-1 truncate text-xs text-[var(--text-faint)]">{detail}</p>

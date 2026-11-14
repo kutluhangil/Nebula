@@ -22,6 +22,7 @@ import {
   ChartFrame,
   TooltipShell,
 } from "@/lib/dataviz";
+import { useLocale } from "@/lib/i18n";
 
 interface Quake {
   properties: { mag: number };
@@ -59,9 +60,7 @@ function bandLabel(mag: number): string {
 const BIN_WIDTH = 0.5;
 
 export function MagnitudeChart({ earthquakes }: { earthquakes: Quake[] }) {
-  // Four whole-magnitude bands turned every view into one tall bar beside
-  // three empty ones — the shape of the distribution was invisible. Half-step
-  // bins across the range actually recorded show where the events sit.
+  const { t } = useLocale();
   const data = useMemo(() => {
     const mags = earthquakes.map((q) => q.properties.mag).filter(Number.isFinite);
     if (mags.length === 0) return [];
@@ -86,8 +85,8 @@ export function MagnitudeChart({ earthquakes }: { earthquakes: Quake[] }) {
 
   return (
     <ChartFrame
-      eyebrow="Magnitude distribution"
-      caption={`${total} events over the last 7 days`}
+      eyebrow={t.earth.magDist}
+      caption={`${total} ${t.earth.magCaption}`}
     >
       <div className="h-52 w-full">
         <ResponsiveContainer width="100%" height="100%">

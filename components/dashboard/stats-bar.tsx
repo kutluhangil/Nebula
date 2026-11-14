@@ -14,22 +14,18 @@ import {
   Sparkles,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
+import { useLocale } from "@/lib/i18n";
 
 interface StatsBarProps {
-  /** Undefined until the earthquake feed answers, so loading reads as "—". */
   earthquakeCount: number | undefined;
-  /** Undefined while loading and on a feed with no reviewed magnitudes. */
   averageMagnitude: number | undefined;
 }
 
 interface Stat {
   icon: typeof Activity;
-  /** Short enough to sit on one line at a quarter of the header width. */
   label: string;
   value: string | number;
-  /** Rendered a step down from the value, so "27,527" carries the weight. */
   unit?: string;
-  /** Set only when the number itself means something is elevated. */
   state?: "alert" | "warn";
 }
 
@@ -37,6 +33,8 @@ export function StatsBar({
   earthquakeCount,
   averageMagnitude,
 }: StatsBarProps) {
+  const { t } = useLocale();
+
   const { data: spacex } = useQuery({
     queryKey: ["spacex"],
     queryFn: () => fetchJson<{ upcoming?: unknown[] }>("/api/spacex"),
@@ -45,17 +43,16 @@ export function StatsBar({
 
   const { data: spaceData } = useQuery({
     queryKey: ["space"],
-    queryFn: () => fetchJson<{ asteroids?: { is_potentially_hazardous_asteroid: boolean }[] }>("/api/space"),
+    queryFn: () =>
+      fetchJson<{ asteroids?: { is_potentially_hazardous_asteroid: boolean }[] }>(
+        "/api/space"
+      ),
     staleTime: 1000 * 60 * 60,
   });
 
-  // The ISS reports its measured velocity; this tile used to print a fixed
-  // nominal figure that stayed on screen even when the feed was down. The query
-  // key matches the tracker's, so React Query serves both from one request.
   const { data: iss } = useQuery({
     queryKey: ["iss"],
-    queryFn: () =>
-      fetchJson<{ velocity?: number; altitude?: number }>("/api/iss"),
+    queryFn: () => fetchJson<{ velocity?: number; altitude?: number }>("/api/iss"),
     refetchInterval: 5000,
   });
 
@@ -72,67 +69,59 @@ export function StatsBar({
 
   const upcomingLaunches = spacex?.upcoming?.length || 0;
   const hazardousAsteroids = (spaceData?.asteroids || []).filter(
-    (a: { is_potentially_hazardous_asteroid: boolean }) =>
-      a.is_potentially_hazardous_asteroid
+    (a) => a.is_potentially_hazardous_asteroid
   ).length;
 
   const stats: Stat[] = [
     {
       icon: Activity,
-      label: "Quakes · 7d",
+      label: t.dashboard.stats.quakes,
       value: earthquakeCount ?? "—",
     },
     {
       icon: Waves,
-      label: "Avg mag · 7d",
-      // One decimal: the feed's own magnitudes carry no more precision.
+      label: t.dashboard.stats.avgMag,
       value: averageMagnitude !== undefined ? averageMagnitude.toFixed(1) : "—",
     },
     {
       icon: Satellite,
-      label: "ISS speed",
+      label: t.dashboard.stats.issSpeed,
       value: iss?.velocity ? Math.round(iss.velocity).toLocaleString() : "—",
       unit: iss?.velocity ? "km/h" : undefined,
     },
     {
       icon: Orbit,
-      label: "ISS altitude",
-      // Measured altitude above the ellipsoid, not the nominal 408 km.
+      label: t.dashboard.stats.issAlt,
       value: iss?.altitude ? Math.round(iss.altitude).toLocaleString() : "—",
       unit: iss?.altitude ? "km" : undefined,
     },
     {
       icon: Rocket,
-      label: "Launches",
+      label: t.dashboard.stats.launches,
       value: upcomingLaunches || "—",
-      unit: upcomingLaunches ? "upcoming" : undefined,
+      unit: upcomingLaunches ? t.dashboard.stats.upcomingUnit : undefined,
     },
     {
       icon: AlertTriangle,
-      label: "Hazardous",
+      label: t.dashboard.stats.hazardous,
       value: spaceData ? hazardousAsteroids : "—",
-      // A count above zero is the whole point of the tile; colour it only then.
       state: hazardousAsteroids > 0 ? "warn" : undefined,
     },
     {
       icon: Zap,
-      label: "Kp index",
+      label: t.dashboard.stats.kp,
       value: solar ? solar.kpIndex : "—",
-      // NOAA calls Kp 5 and above a geomagnetic storm.
       state: solar && solar.kpIndex >= 5 ? "alert" : undefined,
     },
     {
       icon: Globe,
-      label: "Aurora",
+      label: t.dashboard.stats.aurora,
       value: solar ? solar.auroraProbability : "—",
       unit: solar ? "%" : undefined,
     },
     {
       icon: Sparkles,
-      label: "Solar storms",
-      // G-scale warnings and alerts NOAA issued in the last 24 hours, which is
-      // a different fact from the current Kp: a storm can be over and still
-      // have happened today.
+      label: t.dashboard.stats.storms,
       value: solar ? solar.geoStorms : "—",
       unit: solar ? "24h" : undefined,
       state: solar && solar.geoStorms > 0 ? "alert" : undefined,
@@ -145,18 +134,18 @@ export function StatsBar({
   } as const;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 divide-y sm:divide-y lg:divide-y-0 sm:divide-x divide-[var(--border)] border border-[var(--border)] rounded-xl bg-[var(--surface-1)]/80 overflow-hidden">
       {stats.map((stat, i) => {
         const Icon = stat.icon;
         return (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
-            className="inset-well px-3 py-2.5"
+            transition={{ delay: i * 0.025, ease: [0.16, 1, 0.3, 1] }}
+            className="inset-well !border-0 !rounded-none !bg-transparent px-4 py-3.5 hover:!bg-[var(--surface-2)]/60 transition-colors"
           >
-            <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="flex items-center gap-1.5 mb-2">
               <Icon
                 className="w-3 h-3 text-[var(--text-faint)] flex-shrink-0"
                 strokeWidth={1.5}
@@ -168,7 +157,7 @@ export function StatsBar({
             </div>
             <div className="flex items-baseline gap-1.5">
               <span
-                className={`font-mono tabular text-[1.0625rem] leading-none font-medium ${
+                className={`font-mono tabular text-[1.125rem] leading-none font-medium ${
                   stat.state ? stateColor[stat.state] : "text-[var(--text)]"
                 }`}
               >

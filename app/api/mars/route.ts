@@ -38,16 +38,99 @@ interface InsightPayload {
   [sol: string]: SolReport | string[] | undefined;
 }
 
+interface MslSol {
+  sol?: string;
+  terrestrial_date?: string;
+  min_temp?: string;
+  max_temp?: string;
+  pressure?: string;
+  atmo_opacity?: string;
+  sunrise?: string;
+  sunset?: string;
+  local_uv_irradiance_index?: string;
+}
+
+interface Mars2020Image {
+  sol?: number;
+  date_taken_utc?: string;
+  title?: string;
+  camera?: { instrument?: string };
+  image_files?: { medium?: string; small?: string };
+}
+
+function parseNum(value: string | undefined): number | null {
+  if (!value) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function fetchCuriosityWeather() {
+  try {
+    const res = await fetch(
+      "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+      withTimeout({ next: { revalidate: 3600 } })
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { soles?: MslSol[] };
+    const latest = data.soles?.find(
+      (s) => parseNum(s.min_temp) !== null || parseNum(s.max_temp) !== null || parseNum(s.pressure) !== null
+    ) ?? data.soles?.[0];
+    if (!latest) return null;
+    return {
+      sol: parseNum(latest.sol),
+      terrestrialDate: latest.terrestrial_date ?? null,
+      minTempC: parseNum(latest.min_temp),
+      maxTempC: parseNum(latest.max_temp),
+      pressurePa: parseNum(latest.pressure),
+      atmoOpacity: latest.atmo_opacity ?? null,
+      uvIndex: latest.local_uv_irradiance_index ?? null,
+      sunrise: latest.sunrise ?? null,
+      sunset: latest.sunset ?? null,
+      source: "NASA Curiosity (REMS), Gale Crater",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPerseverancePhotos() {
+  try {
+    const res = await fetch(
+      "https://mars.nasa.gov/rss/api/?feed=raw_images&category=mars2020&feedtype=json&num=6",
+      withTimeout({ next: { revalidate: 3600 } })
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { images?: Mars2020Image[] };
+    return (data.images ?? [])
+      .filter((img) => Boolean(img.image_files?.medium || img.image_files?.small))
+      .slice(0, 4)
+      .map((img) => ({
+        sol: typeof img.sol === "number" ? img.sol : null,
+        dateTakenUtc: img.date_taken_utc ?? null,
+        instrument: img.camera?.instrument ?? "Perseverance Cam",
+        title: img.title ?? "Jezero Crater raw frame",
+        imageUrl: img.image_files?.medium ?? img.image_files?.small ?? "",
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
   const apiKey = process.env.NASA_API_KEY || "DEMO_KEY";
 
   try {
-    const res = await fetch(
-      `https://api.nasa.gov/insight_weather/?api_key=${apiKey}&feedtype=json&ver=1.0`,
-      // The archive does not change, so a long revalidate keeps this off the
-      // NASA hourly quota that the live routes share.
-      withTimeout({ next: { revalidate: 86400 } })
-    );
+    const [insightRes, curiosity, perseverancePhotos] = await Promise.all([
+      fetch(
+        `https://api.nasa.gov/insight_weather/?api_key=${apiKey}&feedtype=json&ver=1.0`,
+        // The archive does not change, so a long revalidate keeps this off the
+        // NASA hourly quota that the live routes share.
+        withTimeout({ next: { revalidate: 86400 } })
+      ),
+      fetchCuriosityWeather(),
+      fetchPerseverancePhotos(),
+    ]);
+    const res = insightRes;
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -98,6 +181,8 @@ export async function GET() {
       archival: true,
       missionEndedOn: MISSION_ENDED_ON,
       source: "NASA InSight lander, Elysium Planitia",
+      curiosity,
+      perseverancePhotos,
     });
   } catch (error) {
     console.error("Mars API error:", error);

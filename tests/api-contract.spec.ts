@@ -453,3 +453,46 @@ test.describe("launch record", () => {
     );
   });
 });
+
+test.describe("v2 telemetry extensions", () => {
+  test("solar route returns kpHistory and SDO solar image URL", async ({ request }) => {
+    const response = await request.get("/api/solar");
+    await skipIfUpstreamDown(response, "NOAA SWPC");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(Array.isArray(body.kpHistory)).toBe(true);
+    expect(body.kpHistory.length).toBeGreaterThan(0);
+    expect(body.sdoImageUrl).toContain("sdo.gsfc.nasa.gov");
+  });
+
+  test("apod validates requested date query parameter", async ({ request }) => {
+    const invalid = await request.get("/api/apod?date=not-a-date");
+    expect(invalid.status()).toBe(400);
+
+    const future = await request.get("/api/apod?date=2099-12-31");
+    expect(future.status()).toBe(400);
+  });
+
+  test("mars route keeps archival InSight contract alongside rover payloads", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/mars");
+    await skipIfUpstreamDown(response, "NASA InSight");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(body.archival).toBe(true);
+    expect(body.missionEndedOn).toBe("2022-12-21");
+    expect(Array.isArray(body.perseverancePhotos)).toBe(true);
+  });
+
+  test("weather includes cloud_cover for observing assessment", async ({ request }) => {
+    const response = await request.get("/api/weather");
+    await skipIfUpstreamDown(response, "Open-Meteo");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(typeof body.current.cloud_cover).toBe("number");
+  });
+});

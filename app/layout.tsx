@@ -1,32 +1,45 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
+import {
+  Space_Grotesk,
+  Fraunces,
+  Plus_Jakarta_Sans,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import { Providers } from "@/components/providers";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 
-// Self-hosted by next/font at build time: no render-blocking request to
-// fonts.googleapis.com, and the exact families globals.css asks for.
-const instrumentSans = Instrument_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-instrument-sans",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
+// Self-hosted by next/font at build time: no render-blocking external font request.
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["300", "400", "500", "600", "700"],
   style: ["normal", "italic"],
   display: "swap",
-  variable: "--font-instrument-serif",
+  variable: "--font-body",
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-ibm-plex-mono",
+  variable: "--font-display",
+});
+
+const frauncesItalic = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500"],
+  style: ["italic"],
+  display: "swap",
+  variable: "--font-display-italic",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  variable: "--font-code",
 });
 
 // Applied before paint to prevent a theme flash. Defaults to dark (deep space),
@@ -103,7 +116,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${instrumentSans.variable} ${instrumentSerif.variable} ${ibmPlexMono.variable}`}
+      className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${frauncesItalic.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

@@ -18,6 +18,7 @@ interface LL2Launch {
   status?: { abbrev?: string };
   mission?: { description?: string | null } | null;
   image?: string | null;
+  launch_service_provider?: { name?: string };
   rocket?: { configuration?: { name?: string } };
   pad?: { name?: string };
   vidURLs?: LL2Url[] | null;
@@ -37,6 +38,7 @@ interface MappedLaunch {
   };
   rocket: string;
   launchpad: string;
+  provider: string;
 }
 
 /** LL2 returns several URLs per launch, ranked by a `priority` field. */
@@ -70,6 +72,7 @@ function mapLaunch(l: LL2Launch, upcoming: boolean): MappedLaunch {
     },
     rocket: l.rocket?.configuration?.name ?? "Falcon 9",
     launchpad: l.pad?.name ?? "",
+    provider: l.launch_service_provider?.name ?? "SpaceX",
   };
 }
 
@@ -141,15 +144,17 @@ function buildRecord(launches: LL2Launch[]): LaunchRecord {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const scopeAll = new URL(request.url).searchParams.get("scope") === "all";
+    const filterParam = scopeAll ? "" : "&lsp__id=121";
     const base = "https://ll.thespacedevs.com/2.2.0/launch";
     const [prevRes, upRes] = await Promise.all([
       // Twenty rather than one: the success record below is computed from this
       // same response, so the history costs no extra upstream request against
       // Launch Library's per-IP quota.
-      fetch(`${base}/previous/?limit=${HISTORY_WINDOW}&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
-      fetch(`${base}/upcoming/?limit=6&lsp__id=121&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
+      fetch(`${base}/previous/?limit=${scopeAll ? 12 : HISTORY_WINDOW}${filterParam}&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
+      fetch(`${base}/upcoming/?limit=${scopeAll ? 10 : 6}${filterParam}&mode=detailed`, withTimeout({ next: { revalidate: 3600 } })),
     ]);
 
     await assertOk(prevRes, "previous");

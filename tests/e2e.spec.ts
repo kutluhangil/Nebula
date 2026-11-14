@@ -1628,3 +1628,196 @@ test.describe("launch success record", () => {
     await expect(record).toContainText("1 not classified");
   });
 });
+
+test.describe("bilingual localization & new instruments", () => {
+  test("EN / TR toggle translates dashboard and persists across reloads", async ({
+    page,
+  }) => {
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed briefing." } })
+    );
+    await page.goto("/dashboard");
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      /Planet Intelligence/i
+    );
+
+    const toggle = page.getByRole("button", { name: /Switch language to Turkish/i }).first();
+    await toggle.click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      /Gezegen İstihbaratı/i
+    );
+
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      /Gezegen İstihbaratı/i
+    );
+  });
+
+  test("humans in orbit crew card renders stubbed astronauts on dashboard", async ({
+    page,
+  }) => {
+    await page.route("**/api/astronauts", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          count: 7,
+          issExpedition: 73,
+          people: [
+            {
+              id: 1,
+              name: "Ada Lovelace",
+              country: "UK",
+              agency: "ESA",
+              position: "Flight Engineer",
+              spacecraft: "Soyuz MS-28",
+              daysInSpace: 44,
+              iss: true,
+            },
+          ],
+          source: "Stub Roster",
+        },
+      })
+    );
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed briefing." } })
+    );
+
+    await page.goto("/dashboard");
+    await expect(page.getByText("Currently in orbit")).toBeVisible();
+    await expect(page.getByText("Ada Lovelace")).toBeVisible();
+    await expect(page.getByText("44d")).toBeVisible();
+  });
+
+  test("apod handles video dispatches without collapsing the card", async ({ page }) => {
+    await page.route("**/api/apod*", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          title: "Eclipse Shadow Timelapse",
+          explanation: "Observed from orbit.",
+          url: "https://example.org/eclipse.mp4",
+          media_type: "video",
+          date: "2026-11-14",
+        },
+      })
+    );
+    await page.route("**/api/ai-report", (route) =>
+      route.fulfill({ status: 200, json: { report: "Stubbed." } })
+    );
+
+    await page.goto("/dashboard");
+    await expect(page.getByText("Eclipse Shadow Timelapse")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Open video source/i }).first()).toBeVisible();
+  });
+
+  test("news search filter narrows rendered dispatches", async ({ page }) => {
+    await page.route("**/api/news*", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          count: 2,
+          nextOffset: null,
+          results: [
+            {
+              id: 101,
+              title: "Europa Clipper Trajectory Check",
+              url: "https://example.org/101",
+              image_url: "",
+              news_site: "NASA",
+              summary: "Trajectory nominal.",
+              published_at: "2026-11-14T10:00:00Z",
+              updated_at: "2026-11-14T10:00:00Z",
+              featured: false,
+            },
+            {
+              id: 102,
+              title: "Ariane 6 Fairing Test",
+              url: "https://example.org/102",
+              image_url: "",
+              news_site: "ESA",
+              summary: "Acoustic test complete.",
+              published_at: "2026-11-14T09:00:00Z",
+              updated_at: "2026-11-14T09:00:00Z",
+              featured: false,
+            },
+          ],
+        },
+      })
+    );
+
+    await page.goto("/news");
+    await expect(page.getByText("Europa Clipper Trajectory Check")).toBeVisible();
+    await expect(page.getByText("Ariane 6 Fairing Test")).toBeVisible();
+
+    await page.getByRole("searchbox").fill("Europa");
+    await expect(page.getByText("Europa Clipper Trajectory Check")).toBeVisible();
+    await expect(page.getByText("Ariane 6 Fairing Test")).not.toBeVisible();
+  });
+
+  test("timeline filter pills isolate categories", async ({ page }) => {
+    await page.route("**/api/earthquakes", (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          features: [
+            {
+              id: "eq-1",
+              properties: {
+                mag: 5.8,
+                place: "Aegean Sea",
+                time: Date.parse("2026-11-14T08:00:00Z"),
+              },
+            },
+          ],
+        },
+      })
+    );
+    await page.route("**/api/apod", (route) =>
+      route.fulfill({
+        status: 200,
+        json: { title: "Veil Nebula", date: "2026-11-14" },
+      })
+    );
+    await page.route("**/api/spacex", (route) =>
+      route.fulfill({ status: 200, json: { latest: null, upcoming: [] } })
+    );
+
+    await page.goto("/timeline");
+    await expect(page.getByText("Aegean Sea")).toBeVisible();
+    await expect(page.getByText("Veil Nebula")).toBeVisible();
+
+    await page.getByRole("button", { name: "Astronomy" }).click();
+    await expect(page.getByText("Veil Nebula")).toBeVisible();
+    await expect(page.getByText("Aegean Sea")).not.toBeVisible();
+  });
+
+  test("landing observatory plates switch cleanly across figures", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", {
+        name: "Scientific plates forged from live telemetry.",
+      })
+    ).toBeVisible();
+
+    const plateCanvas = page.locator("canvas[aria-label]").first();
+    await expect(plateCanvas).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /Plate II.*Lithosphere/i })
+      .click();
+    await expect(
+      page.locator('canvas[aria-label="Lithosphere & Seismic Wavefront"]')
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /Plate III.*Orbital/i })
+      .click();
+    await expect(
+      page.locator('canvas[aria-label="Orbital Harmonics & ISS Ephemeris"]')
+    ).toBeVisible();
+  });
+});

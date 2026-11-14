@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Activity, Waves, AlertTriangle, Focus, X } from "lucide-react";
@@ -12,6 +12,8 @@ import { MAGNITUDE_BANDS } from "@/lib/dataviz";
 import { useWatchlist, type EarthquakeThreshold } from "@/hooks/use-watchlist";
 import { fetchJson } from "@/lib/api-client";
 import { FeedError } from "@/components/ui/feed-state";
+import { EtchedBanner } from "@/components/ui/etched-banner";
+import { useLocale } from "@/lib/i18n";
 import {
   EVENT_CATEGORIES,
   EVENT_LAYERS,
@@ -42,8 +44,19 @@ interface EarthquakeFeature {
 }
 
 export default function EarthPage() {
+  const { t, dateLocale } = useLocale();
   const [mapFocused, setMapFocused] = useState(false);
+  const [selectedFocus, setSelectedFocus] = useState<[number, number] | null>(null);
   const [activeLayers, setActiveLayers] = useState<EventCategory[]>([]);
+
+  useEffect(() => {
+    if (!mapFocused) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMapFocused(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mapFocused]);
   const {
     earthquakeThreshold,
     tsunamiOnly,
@@ -112,33 +125,19 @@ export default function EarthPage() {
 
   return (
     <div className="min-h-screen w-full pt-28 pb-24 px-4 md:px-8 lg:px-10">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="badge-live">Live Monitor</div>
-          </div>
-          <h1
-            className="font-serif text-4xl md:text-5xl text-[var(--text)]"
-           
-          >
-            Earth{" "}
-            <span className="italic text-[var(--accent)]">Intelligence</span>
-          </h1>
-          <p className="text-[var(--text-faint)] text-sm mt-1">
-            USGS · Earthquakes M{earthquakeThreshold}.0+ · Last 7 days{tsunamiOnly ? " · Tsunami flagged" : ""}
-          </p>
-        </motion.div>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <EtchedBanner
+          preset="glacier"
+          eyebrow={t.earth.badge}
+          titlePre={t.earth.titlePre}
+          titleItalic={t.earth.titleItalic}
+          subtitle={`USGS · M${earthquakeThreshold}.0+ · 7d${tsunamiOnly ? ` · ${t.earth.tsunamiOnly}` : ""}`}
+        />
 
-        {/* Shared with the dashboard watchlist, so monitoring choices travel with the user. */}
         <div className="mb-6 flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-medium text-[var(--text-dim)]">Seismic view filters</p>
-            <p className="mt-0.5 text-xs text-[var(--text-faint)]">These match your dashboard watchlist.</p>
+            <p className="text-xs font-medium text-[var(--text)]">{t.earth.filtersTitle}</p>
+            <p className="mt-0.5 text-xs text-[var(--text-faint)]">{t.earth.filtersSub}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {([4, 5, 6] as EarthquakeThreshold[]).map((threshold) => (
@@ -146,7 +145,11 @@ export default function EarthPage() {
                 type="button"
                 key={threshold}
                 onClick={() => setEarthquakeThreshold(threshold)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-mono transition-colors ${earthquakeThreshold === threshold ? "border-[var(--accent)] bg-[var(--surface-hover)] text-[var(--text)]" : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"}`}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-mono transition-colors cursor-pointer ${
+                  earthquakeThreshold === threshold
+                    ? "border-[var(--accent)] bg-[var(--surface-hover)] text-[var(--text)]"
+                    : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"
+                }`}
               >
                 M{threshold}+
               </button>
@@ -154,19 +157,21 @@ export default function EarthPage() {
             <button
               type="button"
               onClick={() => setTsunamiOnly(!tsunamiOnly)}
-              className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${tsunamiOnly ? "border-blue-400/40 bg-blue-500/10 text-blue-300" : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"}`}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-mono transition-colors cursor-pointer ${
+                tsunamiOnly
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border)] text-[var(--text-faint)] hover:text-[var(--text-dim)]"
+              }`}
             >
-              Tsunami only
+              {t.earth.tsunamiOnly}
             </button>
           </div>
         </div>
 
-        {/* Counting an empty list as zero events would state, on the strength of
-            a failed request, that the planet recorded no earthquakes this week. */}
         {quakesFailed && (
           <div className="mb-6 glass-card">
             <FeedError
-              title="USGS seismic data is unavailable right now."
+              title={t.dashboard.earthquakes.unavailable}
               error={quakesError}
               icon={Activity}
               onRetry={() => refetchQuakes()}
@@ -174,14 +179,20 @@ export default function EarthPage() {
           </div>
         )}
 
-        {/* Stats. The surface stays neutral; colour is reserved for the two
-            counts that actually escalate, so a busy week reads at a glance. */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[
-            { label: "Total events", value: quakes.length, tone: "text-[var(--text)]" },
-            { label: "Major (M6+)", value: major.length, tone: major.length > 0 ? "text-[var(--accent-red)]" : "text-[var(--text)]" },
-            { label: "Moderate (M5+)", value: moderate.length, tone: "text-[var(--text)]" },
-            { label: "Tsunami alerts", value: tsunamiAlerts.length, tone: tsunamiAlerts.length > 0 ? "text-[var(--accent-amber)]" : "text-[var(--text)]" },
+            { label: t.earth.stats.total, value: quakes.length, tone: "text-[var(--text)]" },
+            {
+              label: t.earth.stats.major,
+              value: major.length,
+              tone: major.length > 0 ? "text-[var(--accent-red)]" : "text-[var(--text)]",
+            },
+            { label: t.earth.stats.moderate, value: moderate.length, tone: "text-[var(--text)]" },
+            {
+              label: t.earth.stats.tsunami,
+              value: tsunamiAlerts.length,
+              tone: tsunamiAlerts.length > 0 ? "text-[var(--accent-amber)]" : "text-[var(--text)]",
+            },
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -197,22 +208,28 @@ export default function EarthPage() {
           ))}
         </div>
 
-        {/* Distribution + relationship charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <MagnitudeChart earthquakes={quakes} />
           <DepthChart earthquakes={quakes} />
         </div>
 
         {/* Map */}
-        <div className={mapFocused ? "fixed inset-3 z-[90] flex flex-col rounded-2xl border border-[var(--border-strong)] bg-[var(--bg)] p-3 shadow-[var(--panel-shadow)] sm:inset-8" : "mb-6"}>
+        <div
+          id="seismic-map-panel"
+          className={
+            mapFocused
+              ? "fixed inset-3 z-[90] flex flex-col rounded-2xl border border-[var(--border-strong)] bg-[var(--bg)] p-3 shadow-[var(--panel-shadow)] sm:inset-8"
+              : "mb-8"
+          }
+        >
           <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <span className="text-[var(--text-dim)] font-semibold text-sm">
-              Interactive Seismic Map
+            <Activity className="w-4 h-4 text-[var(--accent)]" />
+            <span className="text-[var(--text)] font-semibold text-sm">
+              {t.earth.mapTitle}
             </span>
             <div className="ml-auto flex items-center gap-3 text-xs text-[var(--text-faint)]">
               {MAGNITUDE_BANDS.map((b) => (
-                <span key={b.key} className="flex items-center gap-1">
+                <span key={b.key} className="hidden sm:flex items-center gap-1 font-mono">
                   <span
                     className="w-2 h-2 rounded-full inline-block"
                     style={{ backgroundColor: b.color }}
@@ -223,16 +240,16 @@ export default function EarthPage() {
               <button
                 type="button"
                 onClick={() => setMapFocused(!mapFocused)}
-                className="ml-1 inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-[var(--text-faint)] transition-colors hover:text-[var(--text-dim)]"
+                className="ml-1 inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-wide text-[var(--text-dim)] transition-colors hover:text-[var(--text)] cursor-pointer"
               >
                 {mapFocused ? <X className="h-3 w-3" /> : <Focus className="h-3 w-3" />}
-                {mapFocused ? "Close" : "Focus"}
+                {mapFocused ? t.earth.close : t.earth.focus}
               </button>
             </div>
           </div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-faint)]">
-              Layers
+              {t.earth.layers}
             </span>
             {EVENT_CATEGORIES.map((category) => {
               const layer = EVENT_LAYERS[category];
@@ -348,6 +365,7 @@ export default function EarthPage() {
             naturalEvents={naturalEvents}
             radarTileBase={showRadar ? radar.data?.tileBase ?? null : null}
             highlightTsunami={showTsunamiLayer}
+            focusCenter={selectedFocus}
             height={mapFocused ? "calc(100vh - 8rem)" : "500px"}
           />
         </div>
@@ -355,42 +373,64 @@ export default function EarthPage() {
         {/* Recent major events */}
         {major.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="text-[var(--text-dim)] font-semibold text-sm">
-                Major Events (M6+)
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[var(--accent-red)]" />
+                <span className="text-[var(--text)] font-semibold text-sm">
+                  {t.earth.majorEvents}
+                </span>
+              </div>
+              <span className="text-xs font-mono text-[var(--text-faint)]">
+                {t.earth.clickHint}
               </span>
             </div>
             <div className="space-y-2">
-              {major.slice(0, 5).map((q) => (
-                <div
-                  key={q.id}
-                  className="glass-card p-4 flex items-center gap-4"
-                >
-                  <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-red-400 font-bold font-mono text-sm">
-                      {q.properties.mag.toFixed(1)}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[var(--text-dim)] font-medium text-sm">
-                      {q.properties.place}
-                    </p>
-                    <p className="text-[var(--text-faint)] text-xs mt-0.5">
-                      {formatDistanceToNow(q.properties.time, {
-                        addSuffix: true,
-                      })}{" "}
-                      · Depth {q.geometry.coordinates[2].toFixed(0)}km
-                    </p>
-                  </div>
-                  {q.properties.tsunami === 1 && (
-                    <div className="flex items-center gap-1 text-blue-400 text-xs">
-                      <Waves className="w-3.5 h-3.5" />
-                      Tsunami
+              {major.slice(0, 5).map((q) => {
+                const [lon, lat] = q.geometry.coordinates;
+                return (
+                  <button
+                    type="button"
+                    key={q.id}
+                    onClick={() => {
+                      setSelectedFocus([lat, lon]);
+                      document
+                        .getElementById("seismic-map-panel")
+                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className="w-full glass-card p-4 flex items-center gap-4 text-left hover:border-[var(--border-strong)] transition-colors cursor-pointer"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-full border flex items-center justify-center flex-shrink-0"
+                      style={{
+                        borderColor: "color-mix(in srgb, var(--accent-red) 35%, transparent)",
+                        backgroundColor: "color-mix(in srgb, var(--accent-red) 10%, transparent)",
+                      }}
+                    >
+                      <span className="text-[var(--accent-red)] font-bold font-mono text-sm tabular-nums">
+                        {q.properties.mag.toFixed(1)}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[var(--text)] font-medium text-sm truncate">
+                        {q.properties.place}
+                      </p>
+                      <p className="text-[var(--text-faint)] text-xs font-mono mt-0.5">
+                        {formatDistanceToNow(q.properties.time, {
+                          addSuffix: true,
+                          locale: dateLocale,
+                        })}{" "}
+                        · {t.dashboard.earthquakes.depth} {q.geometry.coordinates[2].toFixed(0)}km
+                      </p>
+                    </div>
+                    {q.properties.tsunami === 1 && (
+                      <div className="flex items-center gap-1 text-[var(--accent)] text-xs font-mono shrink-0">
+                        <Waves className="w-3.5 h-3.5" />
+                        {t.dashboard.earthquakes.tsunami}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

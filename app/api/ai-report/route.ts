@@ -64,17 +64,79 @@ export async function POST(request: Request) {
       );
     }
 
+    const kpIndex =
+      typeof body?.kpIndex === "number" && Number.isFinite(body.kpIndex)
+        ? Math.max(0, Math.min(9, Math.round(body.kpIndex)))
+        : null;
+    const solarFlares =
+      typeof body?.solarFlares === "number" && Number.isFinite(body.solarFlares)
+        ? Math.max(0, Math.min(500, Math.round(body.solarFlares)))
+        : null;
+    const hazardousAsteroids =
+      typeof body?.hazardousAsteroids === "number" && Number.isFinite(body.hazardousAsteroids)
+        ? Math.max(0, Math.min(500, Math.round(body.hazardousAsteroids)))
+        : null;
+    const nextLaunchName =
+      typeof body?.nextLaunchName === "string" && body.nextLaunchName.trim().length > 0
+        ? body.nextLaunchName.trim().slice(0, 120)
+        : null;
+    const issLat =
+      typeof body?.issLat === "string" && /^-?\d+(\.\d+)?$/.test(body.issLat)
+        ? Number(body.issLat).toFixed(1)
+        : null;
+    const issLon =
+      typeof body?.issLon === "string" && /^-?\d+(\.\d+)?$/.test(body.issLon)
+        ? Number(body.issLon).toFixed(1)
+        : null;
+    const locale = body?.locale === "tr" ? "tr" : "en";
+
     const apiKey = process.env.OPENAI_API_KEY;
 
     // Fallback if no API key is provided
     if (!apiKey || apiKey === "your_openai_api_key_here") {
-      const date = new Date().toLocaleDateString("en-US", {
+      const date = new Date().toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
         timeZone: "UTC",
       });
+
+      if (locale === "tr") {
+        const quakeDesc =
+          earthquakeCount > 30
+            ? `Son 7 günde küresel ölçekte M4.0+ ${earthquakeCount} deprem kaydedildi; tektonik aktivite yüksek seyrediyor.`
+            : earthquakeCount > 10
+            ? `Bu hafta M4.0 üzeri ${earthquakeCount} deprem kaydedildi; sismik aktivite orta düzeyde.`
+            : earthquakeCount > 0
+            ? `Bu hafta yalnızca ${earthquakeCount} kayda değer deprem ölçüldü — sismik aktivite görece sakin.`
+            : "Sismik izleme servisleri güncelleniyor.";
+
+        const spaceParts: string[] = [];
+        if (kpIndex !== null) {
+          spaceParts.push(
+            `Jeomanyetik aktivite Kp ${kpIndex} düzeyinde${solarFlares !== null ? `, bugün ${solarFlares} güneş parlaması gözlendi` : ""}`
+          );
+        }
+        if (hazardousAsteroids !== null) {
+          spaceParts.push(`${hazardousAsteroids} potansiyel tehlikeli asteroit yakını takip ediliyor`);
+        }
+        if (issLat !== null && issLon !== null) {
+          spaceParts.push(`ISS şu anda ${issLat}°, ${issLon}° koordinatları üzerinde`);
+        }
+        if (nextLaunchName) {
+          spaceParts.push(`sıradaki fırlatma: ${nextLaunchName}`);
+        }
+
+        const spaceLine =
+          spaceParts.length > 0
+            ? `${spaceParts.join("; ")}.`
+            : "Uluslararası Uzay İstasyonu telemetrisi ve uzay havası panelleri anlık olarak izleniyor.";
+
+        return NextResponse.json({
+          report: `Gezegen İstihbarat Özeti — ${date}. ${quakeDesc} ${spaceLine}`,
+        });
+      }
 
       const quakeDesc =
         earthquakeCount > 30
@@ -85,13 +147,39 @@ export async function POST(request: Request) {
           ? `Only ${earthquakeCount} notable earthquakes recorded this week — seismic activity is relatively calm.`
           : "Seismic monitoring services are currently updating. Check back shortly for earthquake data.";
 
-      // The ISS sentence used to assert a nominal 408 km / 27,600 km/h orbit.
-      // Those figures are invented here and contradicted the measured altitude
-      // and velocity the stats bar prints from /api/iss on the same screen.
+      const spaceParts: string[] = [];
+      if (kpIndex !== null) {
+        spaceParts.push(
+          `geomagnetic Kp stands at ${kpIndex}${solarFlares !== null ? ` with ${solarFlares} solar flare${solarFlares === 1 ? "" : "s"} today` : ""}`
+        );
+      }
+      if (hazardousAsteroids !== null) {
+        spaceParts.push(`${hazardousAsteroids} potentially hazardous NEO${hazardousAsteroids === 1 ? "" : "s"} tracked in the window`);
+      }
+      if (issLat !== null && issLon !== null) {
+        spaceParts.push(`ISS ground position is ${issLat}°, ${issLon}°`);
+      }
+      if (nextLaunchName) {
+        spaceParts.push(`next queued launch is ${nextLaunchName}`);
+      }
+
+      const spaceSentence =
+        spaceParts.length > 0
+          ? `Across space telemetry, ${spaceParts.join("; ")}.`
+          : "International Space Station telemetry is reported live on the ISS Tracker panel, and solar weather is tracked separately on the Space Weather panel.";
+
+      // Never invent nominal ISS altitude or velocity here.
       return NextResponse.json({
-        report: `Planet Intelligence Report — ${date}. ${quakeDesc} International Space Station telemetry is reported live on the ISS Tracker panel, and solar weather is tracked separately on the Space Weather panel. Monitoring all Earth and space systems in real-time.`,
+        report: `Planet Intelligence Report — ${date}. ${quakeDesc} ${spaceSentence}`,
       });
     }
+
+    const facts: string[] = [`${earthquakeCount} notable earthquakes (M4.0+) in the last 7 days`];
+    if (kpIndex !== null) facts.push(`geomagnetic Kp index ${kpIndex}`);
+    if (solarFlares !== null) facts.push(`${solarFlares} C/M/X-class solar flares today`);
+    if (hazardousAsteroids !== null) facts.push(`${hazardousAsteroids} potentially hazardous NEOs`);
+    if (issLat !== null && issLon !== null) facts.push(`ISS coordinates ${issLat}°, ${issLon}°`);
+    if (nextLaunchName) facts.push(`next launch ${nextLaunchName}`);
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       ...withTimeout(),
@@ -106,15 +194,15 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You are NEBULA, a highly advanced Planet Intelligence AI. You generate concise, professional, and slightly futuristic daily planet reports. Keep the report to exactly 2-3 sentences. Focus on planetary status, recent data, and scientific tone. Use only the figures given to you; never state an altitude, velocity, orbit count or any other measurement that was not provided.",
+              `You are NEBULA, an editorial planet-intelligence science desk. Write in ${locale === "tr" ? "Turkish" : "English"}. Keep the briefing to 2-3 concise sentences in a measured, scientific journal tone. Use ONLY the numbers explicitly given to you; never state any unprovided altitude, velocity, orbit count, or statistic.`,
           },
           {
             role: "user",
-            content: `Generate a daily planet report. We have recorded ${earthquakeCount} notable earthquakes recently. That count is the only measurement you have; refer to orbital systems and Earth metrics qualitatively rather than inventing numbers for them. Make it sound like a system briefing.`,
+            content: `Write a daily planetary briefing from these live measurements only: ${facts.join("; ")}.`,
           },
         ],
-        temperature: 0.5,
-        max_tokens: 150,
+        temperature: 0.4,
+        max_tokens: 180,
       }),
     });
 

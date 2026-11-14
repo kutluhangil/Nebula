@@ -3,6 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Sparkles, RefreshCw } from "lucide-react";
+import { fetchJson } from "@/lib/api-client";
+import { useLocale } from "@/lib/i18n";
 
 interface AIReportProps {
   /** Undefined until the earthquake feed answers. */
@@ -10,55 +12,97 @@ interface AIReportProps {
 }
 
 export function AIReport({ earthquakeCount }: AIReportProps) {
+  const { t, locale } = useLocale();
+
+  const { data: solar } = useQuery<{ kpIndex?: number; solarFlares?: number }>({
+    queryKey: ["solar"],
+    queryFn: () => fetchJson("/api/solar"),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: spaceData } = useQuery<{
+    asteroids?: { is_potentially_hazardous_asteroid: boolean }[];
+  }>({
+    queryKey: ["space"],
+    queryFn: () => fetchJson("/api/space"),
+    staleTime: 1000 * 60 * 60,
+  });
+
+  const { data: spacex } = useQuery<{ upcoming?: { name: string }[] }>({
+    queryKey: ["spacex"],
+    queryFn: () => fetchJson("/api/spacex"),
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const { data: iss } = useQuery<{
+    iss_position?: { latitude: string; longitude: string };
+  }>({
+    queryKey: ["iss"],
+    queryFn: () => fetchJson("/api/iss"),
+    refetchInterval: 5000,
+  });
+
+  const hazardousAsteroids = spaceData?.asteroids
+    ? spaceData.asteroids.filter((a) => a.is_potentially_hazardous_asteroid).length
+    : undefined;
+  const nextLaunchName = spacex?.upcoming?.[0]?.name;
+
   const { data, isLoading, isError } = useQuery<{ report: string }>({
-    queryKey: ["ai-report", earthquakeCount],
+    // Key only on earthquakeCount and locale so background feeds resolving later
+    // do not trigger extra /api/ai-report synthesis calls.
+    queryKey: ["ai-report", earthquakeCount, locale],
     queryFn: async () => {
       const res = await fetch("/api/ai-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ earthquakeCount }),
+        body: JSON.stringify({
+          earthquakeCount,
+          kpIndex: solar?.kpIndex,
+          solarFlares: solar?.solarFlares,
+          hazardousAsteroids,
+          nextLaunchName,
+          issLat: iss?.iss_position?.latitude,
+          issLon: iss?.iss_position?.longitude,
+          locale,
+        }),
       });
       if (!res.ok) throw new Error("Failed to fetch report");
       return res.json();
     },
-    // The report is written around the earthquake count, so it waits for the
-    // real one rather than generating a briefing about zero events.
     enabled: earthquakeCount !== undefined,
-    staleTime: 1000 * 60 * 60 * 2, // 2 hours
+    staleTime: 1000 * 60 * 60 * 2,
   });
 
-  // A disabled query is pending but not loading, so the wait for the count is
-  // part of what the card reports as "generating".
   const isGenerating = earthquakeCount === undefined || isLoading;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-panel p-4 border border-violet-500/10 bg-gradient-to-r from-violet-500/[0.04] to-blue-500/[0.03]"
+      className="border border-[var(--border)] rounded-xl bg-[var(--surface-1)]/80 p-6 h-full flex flex-col justify-between"
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-            <Sparkles className="w-3.5 h-3.5 text-[var(--text-dim)]" />
+      <div>
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border)]">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-[var(--accent)]" strokeWidth={1.5} />
+            <span className="font-serif text-lg text-[var(--text)]">
+              {t.dashboard.aiReport.title}
+            </span>
           </div>
-          <span className="text-[var(--text-dim)] font-semibold text-sm">
-            Daily Planet Report
-          </span>
+          <div className="flex items-center gap-1.5 text-[var(--text-faint)] text-[11px] font-mono">
+            <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
+            {isGenerating ? t.dashboard.aiReport.generating : t.dashboard.aiReport.ready}
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 text-[var(--text-faint)] text-xs">
-          <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
-          {isGenerating ? "Generating..." : "Auto-generated"}
-        </div>
-      </div>
 
-      <p className="text-[var(--text-faint)] text-sm leading-relaxed">
-        {isGenerating
-          ? "Connecting to NEBULA Core. Analyzing orbital data, seismic activity, and solar parameters..."
-          : isError
-          ? "Unable to generate AI report at this time. Please check your connection."
-          : data?.report}
-      </p>
+        <p className="text-[var(--text-dim)] text-sm sm:text-[15px] leading-relaxed font-normal max-w-prose">
+          {isGenerating
+            ? t.dashboard.aiReport.waiting
+            : isError
+            ? t.dashboard.aiReport.error
+            : data?.report}
+        </p>
+      </div>
     </motion.div>
   );
 }

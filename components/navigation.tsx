@@ -20,28 +20,58 @@ import {
 } from "lucide-react";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageToggle } from "@/components/ui/language-toggle";
+import { useLocale } from "@/lib/i18n";
+import { useFavorites } from "@/hooks/use-favorites";
+import { useHydrated } from "@/hooks/use-hydrated";
 
-const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/dashboard", label: "Dashboard", icon: Globe },
-  { href: "/news", label: "News", icon: Newspaper },
-  { href: "/space", label: "Space", icon: Satellite },
-  { href: "/sky", label: "Sky", icon: Moon },
-  { href: "/earth", label: "Earth", icon: Activity },
-  { href: "/launches", label: "Launches", icon: Rocket },
-  { href: "/timeline", label: "Timeline", icon: Zap },
-  { href: "/favorites", label: "Favorites", icon: Star },
-];
+interface NavLink {
+  href: string;
+  label: string;
+  icon: typeof Globe;
+  count?: number;
+}
 
 export function Navigation() {
   const pathname = usePathname();
+  const { t, locale } = useLocale();
+  const hydrated = useHydrated();
+  const favorites = useFavorites((s) => s.favorites);
+  const favCount = hydrated ? favorites.length : 0;
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [time, setTime] = useState("");
 
+  // Grouped strictly by observatory purpose so navigation mirrors landing sections cleanly.
+  const navGroups: { label: string; items: NavLink[] }[] = [
+    {
+      label: t.nav.groupMonitor,
+      items: [
+        { href: "/dashboard", label: t.nav.dashboard, icon: Globe },
+        { href: "/earth", label: t.nav.earth, icon: Activity },
+        { href: "/timeline", label: t.nav.timeline, icon: Zap },
+      ],
+    },
+    {
+      label: t.nav.groupCosmos,
+      items: [
+        { href: "/space", label: t.nav.space, icon: Satellite },
+        { href: "/sky", label: t.nav.sky, icon: Moon },
+        { href: "/launches", label: t.nav.launches, icon: Rocket },
+      ],
+    },
+    {
+      label: t.nav.groupArchive,
+      items: [
+        { href: "/news", label: t.nav.news, icon: Newspaper },
+        { href: "/favorites", label: t.nav.favorites, icon: Star, count: favCount },
+      ],
+    },
+  ];
+
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 24);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -62,7 +92,6 @@ export function Navigation() {
     return () => clearInterval(interval);
   }, []);
 
-  // Keyboard shortcut for search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -74,108 +103,131 @@ export function Navigation() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Over the full-bleed dark hero canvas at top of "/", lock header ink to dark theme
+  // so controls stay crisp regardless of light/dark surface choice below the fold.
+  const overDarkHero = pathname === "/" && !scrolled;
+
   return (
     <>
       <CommandPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-      
-      {/* Floating Header */}
+
       <motion.header
-        initial={{ y: -100, opacity: 0 }}
+        initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 flex justify-center pt-4 md:pt-6 px-4`}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        data-theme={overDarkHero ? "dark" : undefined}
+        className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-3.5 md:pt-4 px-4"
       >
         <div
-          className={`w-full max-w-7xl flex items-center justify-between transition-all duration-500 rounded-2xl ${
+          className={`w-full max-w-7xl flex items-center justify-between gap-3 transition-all duration-500 rounded-full ${
             scrolled
-              ? "bg-[var(--bg-elev)]/80 backdrop-blur-2xl border border-[var(--border)] px-4 md:px-6 py-3 shadow-[var(--panel-shadow)]"
-              : "bg-transparent border border-transparent px-2 md:px-4 py-4"
+              ? "bg-[var(--bg-elev)]/88 backdrop-blur-2xl border border-[var(--border-strong)] px-4 md:px-5 py-2 shadow-[var(--panel-shadow)]"
+              : "bg-[var(--bg-elev)]/55 backdrop-blur-xl border border-[var(--border)] px-3.5 md:px-5 py-2"
           }`}
         >
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-7 h-7 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-[var(--accent)] opacity-25 blur-md group-hover:opacity-45 transition-opacity duration-500" />
-              <Globe className="w-5 h-5 text-[var(--accent)] relative z-10" strokeWidth={1.5} />
-            </div>
-            <span className="font-serif text-xl tracking-tight text-[var(--text)] transition-colors">
-              Nebula.
+          {/* Singularity horizon mark */}
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+            <span className="relative flex h-6 w-6 items-center justify-center">
+              <span className="absolute inset-0 rounded-full border border-[var(--accent)]/60 group-hover:scale-110 transition-transform" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--text)] ring-2 ring-[var(--accent)]/40" />
+            </span>
+            <span className="font-serif text-xl tracking-tight text-[var(--text)]">
+              Nebula<span className="italic text-[var(--accent)]">.</span>
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`relative px-3.5 py-2 rounded-full text-sm font-sans transition-colors duration-300 ${
-                    isActive
-                      ? "text-[var(--text)] font-medium"
-                      : "text-[var(--text-faint)] hover:text-[var(--accent)]"
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-pill"
-                      className="absolute inset-0 bg-[var(--surface)] border border-[var(--border)] rounded-full -z-10"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  {item.label}
-                </Link>
-              );
-            })}
+          {/* Desktop nav organized by purpose */}
+          <nav
+            aria-label="Primary observatory navigation"
+            className="hidden md:flex items-center gap-1 lg:gap-2"
+          >
+            {navGroups.map((group, gi) => (
+              <div key={group.label} className="flex items-center">
+                {gi > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="mx-1 lg:mx-1.5 h-3.5 w-px bg-[var(--border-strong)]"
+                  />
+                )}
+                <div className="flex items-center gap-0.5 rounded-full bg-[var(--surface)]/75 border border-[var(--border)] px-1 py-0.5">
+                  <span className="hidden xl:inline-block px-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--text-faint)]">
+                    {group.label}
+                  </span>
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`relative px-2 lg:px-2.5 py-1 rounded-full text-xs font-sans transition-colors duration-200 whitespace-nowrap ${
+                          isActive
+                            ? "text-[var(--text)] font-medium"
+                            : "text-[var(--text-dim)] hover:text-[var(--accent)]"
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-pill"
+                            className="absolute inset-0 bg-[var(--bg-elev)] border border-[var(--accent)]/45 rounded-full -z-10"
+                            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                          />
+                        )}
+                        {item.label}
+                        {typeof item.count === "number" && item.count > 0 && (
+                          <span className="ml-1 inline-flex items-center justify-center min-w-[15px] h-3.5 px-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-mono text-[9px] tabular-nums">
+                            {item.count}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          {/* Right side controls */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right controls */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <button
               onClick={() => setSearchOpen(true)}
-              className="tap flex items-center gap-2 group cursor-pointer"
-              aria-label="Search"
+              className="tap flex items-center gap-1.5 group cursor-pointer"
+              aria-label={t.nav.search}
             >
-              <Search className="w-4 h-4 text-[var(--text-faint)] group-hover:text-[var(--text)] transition-colors" />
-              <kbd className="hidden lg:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono text-[var(--text-faint)] bg-[var(--surface)] border border-[var(--border)] rounded">
+              <Search className="w-3.5 h-3.5 text-[var(--text-faint)] group-hover:text-[var(--accent)] transition-colors" />
+              <kbd className="hidden xl:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-faint)] bg-[var(--surface)] border border-[var(--border)] rounded">
                 ⌘K
               </kbd>
             </button>
 
-            <div className="w-px h-4 bg-[var(--border-strong)]" />
-
-            <div className="flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-1.5 pl-1 border-l border-[var(--border)]">
               <span className="live-dot" />
               <span
-                className="tabular text-xs font-mono text-[var(--text-dim)] tracking-widest"
-                aria-label="UTC Time"
+                className="tabular text-[11px] font-mono text-[var(--text-dim)] tracking-wider"
+                aria-label={t.nav.utcTime}
               >
                 {time}
               </span>
             </div>
 
-            <div className="w-px h-4 bg-[var(--border-strong)]" />
-
+            <LanguageToggle />
             <ThemeToggle />
           </div>
 
           {/* Mobile controls */}
-          <div className="flex items-center gap-2 md:hidden">
-            {/* The command palette was keyboard-only on mobile, where there is
-                no way to press Cmd+K. */}
+          <div className="flex items-center gap-1.5 md:hidden">
             <button
               onClick={() => setSearchOpen(true)}
-              className="w-9 h-9 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
-              aria-label="Search"
+              className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
+              aria-label={locale === "tr" ? "Ara" : "Search"}
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-3.5 h-3.5" />
             </button>
+            <LanguageToggle />
             <ThemeToggle />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="w-9 h-9 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
-              aria-label="Toggle menu"
+              className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
+              aria-label={t.nav.toggleMenu}
             >
               {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
@@ -183,42 +235,65 @@ export function Navigation() {
         </div>
       </motion.header>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile grouped drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-4 top-24 z-40 bg-[var(--bg-elev)]/95 backdrop-blur-2xl border border-[var(--border)] rounded-2xl shadow-[var(--panel-shadow)] p-4 md:hidden overflow-hidden"
+            exit={{ opacity: 0, y: -16, scale: 0.97 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-x-4 top-20 z-40 bg-[var(--bg-elev)]/95 backdrop-blur-2xl border border-[var(--border-strong)] rounded-2xl shadow-[var(--panel-shadow)] p-4 md:hidden overflow-y-auto max-h-[80vh]"
           >
-            <div className="flex flex-col space-y-1">
-              {navItems.map((item, i) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    key={item.href}
-                  >
-                    <Link
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-sans transition-all ${
-                        isActive
-                          ? "bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]"
-                          : "text-[var(--text-faint)] hover:text-[var(--accent)] hover:bg-[var(--surface)]"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" strokeWidth={isActive ? 2 : 1.5} />
-                      {item.label}
-                    </Link>
-                  </motion.div>
-                );
-              })}
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm mb-3 ${
+                pathname === "/"
+                  ? "bg-[var(--surface)] text-[var(--text)] border border-[var(--accent)]/40"
+                  : "text-[var(--text-dim)] hover:text-[var(--accent)]"
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              {t.nav.home}
+            </Link>
+
+            <div className="space-y-4">
+              {navGroups.map((group) => (
+                <div key={group.label}>
+                  <div className="px-3.5 mb-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                    {group.label}
+                  </div>
+                  <div className="grid grid-cols-1 gap-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors ${
+                            isActive
+                              ? "bg-[var(--surface)] text-[var(--text)] border border-[var(--accent)]/40"
+                              : "text-[var(--text-dim)] hover:text-[var(--accent)] hover:bg-[var(--surface)]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <Icon className="w-4 h-4" strokeWidth={1.6} />
+                            {item.label}
+                          </span>
+                          {typeof item.count === "number" && item.count > 0 && (
+                            <span className="font-mono text-[10px] text-[var(--accent)]">
+                              {item.count}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}

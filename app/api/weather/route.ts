@@ -54,15 +54,22 @@ export async function GET(request: Request) {
   const longitude = isLocal ? lon : DEFAULT_LOCATION.lon;
 
   try {
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-        "&current=temperature_2m,relative_humidity_2m,is_day,precipitation,wind_speed_10m" +
-        "&daily=sunrise,sunset&timezone=auto",
-      // A viewer-specific request must not be cached for everyone else.
-      withTimeout(
-        isLocal ? { cache: "no-store" } : { next: { revalidate: 3600 } }
-      )
+    const fetchOpts = withTimeout(
+      isLocal ? { cache: "no-store" } : { next: { revalidate: 3600 } }
     );
+    const [response, aqResponse] = await Promise.all([
+      fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+          "&current=temperature_2m,relative_humidity_2m,is_day,precipitation,wind_speed_10m,cloud_cover" +
+          "&daily=sunrise,sunset&timezone=auto",
+        fetchOpts
+      ),
+      fetch(
+        `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}` +
+          "&current=european_aqi,us_aqi,pm2_5,uv_index",
+        fetchOpts
+      ).catch(() => null),
+    ]);
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
@@ -72,9 +79,11 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
+    const aqData = aqResponse && aqResponse.ok ? await aqResponse.json().catch(() => null) : null;
 
     return NextResponse.json({
       ...data,
+      airQuality: aqData?.current ?? null,
       locationLabel: isLocal ? null : DEFAULT_LOCATION.label,
       isLocalLocation: isLocal,
     });

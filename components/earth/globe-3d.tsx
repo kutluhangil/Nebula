@@ -2,16 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Html, useTexture } from "@react-three/drei";
+import { Html, OrbitControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { useQuery } from "@tanstack/react-query";
 import { magnitudeColor } from "@/lib/dataviz";
 import { fetchJson } from "@/lib/api-client";
 
 /* ---------------------------------------------------------------------------
-   A realistic 3D Earth: textured mesh with a cloud layer, day/night lighting,
-   and thousands of orbiting satellite particles. Includes the live ISS position
-   and recent significant earthquakes fixed to their true coordinates.
+   Photorealistic 3D Earth: NASA Blue Marble surface + topographic bump map +
+   ocean specular glint, drifting semi-transparent cloud deck, dual-layer
+   Rayleigh blue Fresnel atmosphere, inclined orbital track, delicate LEO
+   telemetry particles, live ISS reticle, and USGS seismic markers.
 --------------------------------------------------------------------------- */
 
 const R = 1;
@@ -27,11 +28,7 @@ function latLonToVec3(lat: number, lon: number, r = R): THREE.Vector3 {
   );
 }
 
-/**
- * Deterministic PRNG. The swarm only needs to *look* random, and a fixed seed
- * keeps the generated buffer pure so it renders identically on server and
- * client instead of reshuffling on every render.
- */
+/** Deterministic PRNG for pure satellite & cloud buffers. */
 function mulberry32(seed: number) {
   return () => {
     seed |= 0;
@@ -42,86 +39,129 @@ function mulberry32(seed: number) {
   };
 }
 
-/** Generates thousands of points for the satellite swarm */
+/** Builds a subtle orbital telemetry swarm around LEO/MEO shells. */
 function useSatellitePoints() {
   return useMemo(() => {
     const random = mulberry32(0x5eed);
-    const count = 3500;
+    const count = 1600;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    
-    // Mix of colors: cyan, white, red, blue
-    const colorOptions = [
-      new THREE.Color("#37e0e8"), // cyan
-      new THREE.Color("#ffffff"), // white
-      new THREE.Color("#ff5230"), // red
-      new THREE.Color("#5e8bff"), // blue
+
+    const palette = [
+      new THREE.Color("#7ec8ff"),
+      new THREE.Color("#e9eef8"),
+      new THREE.Color("#9db8ff"),
+      new THREE.Color("#ff6b5a"),
     ];
 
     for (let i = 0; i < count; i++) {
-      // Random position on sphere slightly larger than Earth
-      // R=1, Satellites orbit between R+0.05 and R+0.25
-      const r = R + 0.05 + random() * 0.20;
+      const r = R + 0.065 + random() * 0.16;
       const theta = 2 * Math.PI * random();
       const phi = Math.acos(2 * random() - 1);
-      
-      const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta);
-      const z = r * Math.cos(phi);
 
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
 
-      // Heavy bias towards cyan/blue/white, rarely red
-      const rand = random();
-      let c;
-      if (rand < 0.4) c = colorOptions[0]; // cyan
-      else if (rand < 0.8) c = colorOptions[1]; // white
-      else if (rand < 0.95) c = colorOptions[3]; // blue
-      else c = colorOptions[2]; // red
+      const p = random();
+      const c =
+        p < 0.45
+          ? palette[0]
+          : p < 0.85
+            ? palette[1]
+            : p < 0.96
+              ? palette[2]
+              : palette[3];
 
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
     }
-    
+
     return { positions, colors };
   }, []);
 }
 
-type Colors = {
-  accent: string;
-  cyan: string;
-  ocean: string;
-  core: string;
-};
+/** Generates a procedural seamless wispy cloud texture on an offscreen canvas. */
+function createCloudTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const w = 512;
+  const h = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
 
-function readColors(): Colors {
-  const g = (n: string, f: string) =>
-    getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f;
-  return {
-    accent: g("--accent", "#5e8bff"),
-    cyan: g("--accent-cyan", "#37e0e8"),
-    ocean: g("--text-faint", "#5c6786"),
-    core: g("--bg-elev", "#090d18"),
-  };
+  ctx.clearRect(0, 0, w, h);
+  const rand = mulberry32(0xc10d);
+
+  // Soft zonal trade-wind cloud bands + cyclonic wisps
+  for (let i = 0; i < 650; i++) {
+    const x = rand() * w;
+    // Concentrate subtly toward mid-latitudes and ITCZ
+    const latBias = (rand() + rand() - 1) * 0.44 + 0.5;
+    const y = latBias * h;
+    const rx = 14 + rand() * 52;
+    const ry = 3 + rand() * 11;
+    const alpha = 0.03 + rand() * 0.09;
+
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, rx);
+    grad.addColorStop(0, `rgba(246, 250, 255, ${alpha})`);
+    grad.addColorStop(0.55, `rgba(232, 242, 255, ${alpha * 0.45})`);
+    grad.addColorStop(1, "rgba(232, 242, 255, 0)");
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((rand() - 0.5) * 0.35);
+    ctx.scale(1, ry / rx);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, rx, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
+  return tex;
 }
 
-/** Theme token colours, refreshed whenever the data-theme attribute flips. */
-function useThemeColors(): Colors {
-  const [colors, setColors] = useState<Colors>(readColors);
-  useEffect(() => {
-    const update = () => setColors(readColors());
-    const observer = new MutationObserver(update);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => observer.disconnect();
-  }, []);
-  return colors;
-}
+const ATMOSPHERE_VERTEX = /* glsl */ `
+  varying vec3 vNormalWorld;
+  varying vec3 vViewDir;
+  void main() {
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vNormalWorld = normalize(mat3(modelMatrix) * normal);
+    vViewDir = normalize(cameraPosition - worldPos.xyz);
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`;
+
+const ATMOSPHERE_HALO_FRAGMENT = /* glsl */ `
+  varying vec3 vNormalWorld;
+  varying vec3 vViewDir;
+  uniform vec3 uColor;
+  uniform float uIntensity;
+  void main() {
+    float viewDot = dot(normalize(vNormalWorld), normalize(vViewDir));
+    float rim = pow(clamp(0.58 - viewDot, 0.0, 1.0), 4.6);
+    gl_FragColor = vec4(uColor, rim * uIntensity);
+  }
+`;
+
+const ATMOSPHERE_HAZE_FRAGMENT = /* glsl */ `
+  varying vec3 vNormalWorld;
+  varying vec3 vViewDir;
+  uniform vec3 uColor;
+  void main() {
+    float ndotv = max(dot(normalize(vNormalWorld), normalize(vViewDir)), 0.0);
+    float fresnel = pow(1.0 - ndotv, 4.2) * 0.55;
+    gl_FragColor = vec4(uColor, fresnel);
+  }
+`;
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 
@@ -156,7 +196,7 @@ function QuakeMarker({ quake }: { quake: Quake }) {
   const [lon, lat] = quake.geometry.coordinates;
   const mag = quake.properties.mag;
   const pos = useMemo(() => latLonToVec3(lat, lon, R + 0.005), [lat, lon]);
-  const size = 0.012 + (mag - 4) * 0.006;
+  const size = 0.008 + Math.max(0, mag - 4) * 0.0038;
   const color = magnitudeColor(mag);
 
   return (
@@ -167,13 +207,13 @@ function QuakeMarker({ quake }: { quake: Quake }) {
           setHovered(true);
         }}
         onPointerOut={() => setHovered(false)}
-        scale={hovered ? 1.6 : 1}
+        scale={hovered ? 1.7 : 1}
       >
         <sphereGeometry args={[size, 12, 12]} />
         <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
       {hovered && (
-        <Html center distanceFactor={5} zIndexRange={[60, 0]}>
+        <Html center zIndexRange={[60, 0]}>
           <div className="globe-tip">
             <span className="globe-tip-mag" style={{ color }}>
               M{mag.toFixed(1)}
@@ -189,77 +229,108 @@ function QuakeMarker({ quake }: { quake: Quake }) {
 function ISSMarker({
   lat,
   lon,
-  color,
   reduce,
 }: {
   lat: number;
   lon: number;
-  color: string;
   reduce: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
-  const pos = useMemo(() => latLonToVec3(lat, lon, R + 0.055), [lat, lon]);
+  const pos = useMemo(() => latLonToVec3(lat, lon, R + 0.052), [lat, lon]);
+  const surfaceOffset = useMemo(
+    () => latLonToVec3(lat, lon, R).sub(pos).toArray(),
+    [lat, lon, pos]
+  );
 
   useFrame(({ clock }) => {
     if (ref.current && !reduce) {
-      const s = 1 + Math.sin(clock.elapsedTime * 3) * 0.25;
+      const s = 1 + Math.sin(clock.elapsedTime * 3.2) * 0.22;
       ref.current.scale.setScalar(s);
     }
   });
 
   return (
     <group position={pos}>
-      {/* tether line down to the surface */}
       <line>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            args={[
-              new Float32Array([
-                0, 0, 0,
-                ...latLonToVec3(lat, lon, R).sub(pos).toArray(),
-              ]),
-              3,
-            ]}
+            args={[new Float32Array([0, 0, 0, ...surfaceOffset]), 3]}
           />
         </bufferGeometry>
-        <lineBasicMaterial color={color} transparent opacity={0.4} />
+        <lineBasicMaterial color="#7fd1ff" transparent opacity={0.55} />
       </line>
       <mesh ref={ref}>
-        <sphereGeometry args={[0.022, 16, 16]} />
-        <meshBasicMaterial color={color} toneMapped={false} />
+        <octahedronGeometry args={[0.017, 0]} />
+        <meshBasicMaterial color="#9ae1ff" toneMapped={false} />
       </mesh>
-      <Html center distanceFactor={6} zIndexRange={[70, 0]}>
+      <Html center zIndexRange={[70, 0]}>
         <div className="globe-iss">ISS</div>
       </Html>
     </group>
   );
 }
 
+/** Inclined 51.6-degree orbital path ring around Earth. */
+function OrbitalTrackRing() {
+  const geometry = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    const r = R + 0.052;
+    const segments = 128;
+    for (let i = 0; i <= segments; i++) {
+      const a = (i / segments) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, []);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <lineLoop geometry={geometry} rotation={[0.9, 0.3, 0]}>
+      <lineBasicMaterial color="#6cc4ff" transparent opacity={0.22} />
+    </lineLoop>
+  );
+}
+
 /* ------------------------------- the globe -------------------------------- */
 
-// Served from this app's own origin. These were loaded from unpkg at runtime,
-// which put an unmonitored third-party CDN in the landing page's critical path
-// — the one remaining dependency that did not go through a route with a
-// timeout and a health probe. Sourced from three-globe@2.45.2 (MIT); the
-// colour map is downscaled from 4096px, far beyond what a 440px globe samples.
+// Self-hosted Earth textures (three-globe@2.45.2 MIT) in /public/textures.
 const GLOBE_TEXTURE_BASE = "/textures";
 
 function Globe({ reduce }: { reduce: boolean }) {
   const group = useRef<THREE.Group>(null);
+  const cloudsRef = useRef<THREE.Mesh>(null);
   const satellitesRef = useRef<THREE.Points>(null);
-  const colors = useThemeColors();
-  
-  // High-res public textures for realistic Earth. The version is pinned: the
-  // unversioned unpkg path follows whatever three-globe publishes next, so a
-  // release that renames or drops these files would silently break the hero.
+
   const [colorMap, bumpMap, specularMap] = useTexture([
     `${GLOBE_TEXTURE_BASE}/earth-blue-marble.jpg`,
     `${GLOBE_TEXTURE_BASE}/earth-topology.png`,
     `${GLOBE_TEXTURE_BASE}/earth-water.png`,
   ]);
 
+  const cloudTexture = useMemo(() => createCloudTexture(), []);
+  useEffect(() => () => cloudTexture?.dispose(), [cloudTexture]);
+
   const { positions: satPositions, colors: satColors } = useSatellitePoints();
+
+  const haloUniforms = useMemo(
+    () => ({
+      uColor: { value: new THREE.Color("#4fa8ff") },
+      uIntensity: { value: 0.72 },
+    }),
+    []
+  );
+
+  const hazeUniforms = useMemo(
+    () => ({
+      uColor: { value: new THREE.Color("#9bd4ff") },
+    }),
+    []
+  );
+
+  const oceanSpecular = useMemo(() => new THREE.Color("#2e6699"), []);
+  const earthEmissive = useMemo(() => new THREE.Color("#071324"), []);
 
   const { data: iss } = useQuery<{
     iss_position: { latitude: string; longitude: string };
@@ -279,18 +350,20 @@ function Globe({ reduce }: { reduce: boolean }) {
     () =>
       (quakeData?.features ?? [])
         .filter((q) => Number.isFinite(q.geometry?.coordinates?.[1]))
-        .slice(0, 40),
+        .slice(0, 36),
     [quakeData]
   );
 
   useFrame((_, delta) => {
     if (group.current && !reduce) {
-      group.current.rotation.y += delta * 0.05;
+      group.current.rotation.y += delta * 0.045;
     }
-    // Rotate satellites slightly faster on a different axis to simulate orbit
+    if (cloudsRef.current && !reduce) {
+      cloudsRef.current.rotation.y += delta * 0.015;
+    }
     if (satellitesRef.current && !reduce) {
-      satellitesRef.current.rotation.y -= delta * 0.02;
-      satellitesRef.current.rotation.z += delta * 0.01;
+      satellitesRef.current.rotation.y -= delta * 0.018;
+      satellitesRef.current.rotation.z += delta * 0.008;
     }
   });
 
@@ -298,77 +371,96 @@ function Globe({ reduce }: { reduce: boolean }) {
   const issLon = iss ? parseFloat(iss.iss_position.longitude) : null;
 
   return (
-    <group ref={group} rotation={[0.35, 0, 0.1]}>
-      
-      {/* Lighting for day/night effect */}
-      <ambientLight intensity={0.05} />
-      {/* Strong directional light acting as the Sun */}
-      <directionalLight position={[5, 3, 5]} intensity={2.5} />
-      {/* Soft backlight so the dark side isn't pitch black */}
-      <directionalLight position={[-5, -3, -5]} intensity={0.2} color={colors.accent} />
+    <>
+      {/* Fixed space lighting so Earth rotates organically across the terminator */}
+      <ambientLight intensity={0.44} color="#8fb5eb" />
+      <directionalLight position={[5.6, 2.2, 2.8]} intensity={2.85} color="#fff6e6" />
+      <directionalLight position={[-4.5, -1.8, -3.2]} intensity={0.7} color="#2864b8" />
 
-      {/* Realistic Earth Mesh */}
-      <mesh>
-        <sphereGeometry args={[R, 64, 64]} />
-        <meshStandardMaterial
-          map={colorMap}
-          bumpMap={bumpMap}
-          bumpScale={0.015}
-          roughnessMap={specularMap}
-          roughness={0.7}
-          metalness={0.1}
-        />
-      </mesh>
+      <group ref={group} rotation={[0.28, -1.05, 0.08]}>
+        {/* Photorealistic Earth surface with topographic relief & ocean glint */}
+        <mesh>
+          <sphereGeometry args={[R, 64, 64]} />
+          <meshPhongMaterial
+            map={colorMap}
+            bumpMap={bumpMap}
+            bumpScale={0.03}
+            specularMap={specularMap}
+            specular={oceanSpecular}
+            shininess={10}
+            emissive={earthEmissive}
+            emissiveIntensity={0.42}
+          />
+        </mesh>
 
-      {/* Cloud layer (simulated without texture) */}
-      <mesh scale={[1.006, 1.006, 1.006]}>
-        <sphereGeometry args={[R, 64, 64]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.15}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
+        {/* Semi-transparent drifting cloud deck */}
+        {cloudTexture && (
+          <mesh ref={cloudsRef}>
+            <sphereGeometry args={[R + 0.014, 48, 48]} />
+            <meshLambertMaterial
+              map={cloudTexture}
+              transparent
+              opacity={0.78}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
 
-      {/* Atmosphere Halo */}
-      <mesh>
-        <sphereGeometry args={[R + 0.04, 48, 48]} />
-        <meshBasicMaterial
-          color={colors.accent}
-          transparent
-          opacity={0.08}
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+        {/* Inner surface Rayleigh horizon haze */}
+        <mesh>
+          <sphereGeometry args={[R + 0.019, 48, 48]} />
+          <shaderMaterial
+            vertexShader={ATMOSPHERE_VERTEX}
+            fragmentShader={ATMOSPHERE_HAZE_FRAGMENT}
+            uniforms={hazeUniforms}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
 
-      {/* Satellite Particle Swarm */}
-      <points ref={satellitesRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[satPositions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[satColors, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.012}
-          vertexColors={true}
-          transparent={true}
-          opacity={0.8}
-          sizeAttenuation={true}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </points>
+        {/* Outer volumetric Rayleigh atmospheric scattering halo */}
+        <mesh>
+          <sphereGeometry args={[R + 0.075, 48, 48]} />
+          <shaderMaterial
+            vertexShader={ATMOSPHERE_VERTEX}
+            fragmentShader={ATMOSPHERE_HALO_FRAGMENT}
+            uniforms={haloUniforms}
+            side={THREE.BackSide}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
 
-      {quakes.map((q) => (
-        <QuakeMarker key={q.id} quake={q} />
-      ))}
+        {/* Subtle LEO/MEO satellite swarm */}
+        <points ref={satellitesRef}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[satPositions, 3]} />
+            <bufferAttribute attach="attributes-color" args={[satColors, 3]} />
+          </bufferGeometry>
+          <pointsMaterial
+            size={0.007}
+            vertexColors
+            transparent
+            opacity={0.45}
+            sizeAttenuation
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </points>
 
-      {issLat !== null && issLon !== null && (
-        <ISSMarker lat={issLat} lon={issLon} color={colors.cyan} reduce={reduce} />
-      )}
-    </group>
+        <OrbitalTrackRing />
+
+        {quakes.map((q) => (
+          <QuakeMarker key={q.id} quake={q} />
+        ))}
+
+        {issLat !== null && issLon !== null && (
+          <ISSMarker lat={issLat} lon={issLon} reduce={reduce} />
+        )}
+      </group>
+    </>
   );
 }
 
@@ -376,7 +468,7 @@ export default function Globe3D() {
   const reduce = usePrefersReducedMotion();
   return (
     <Canvas
-      camera={{ position: [0, 0, 2.8], fov: 45 }}
+      camera={{ position: [0, 0, 3.45], fov: 42 }}
       dpr={[1, 2]}
       frameloop={reduce ? "demand" : "always"}
       gl={{ antialias: true, alpha: true }}
@@ -384,6 +476,13 @@ export default function Globe3D() {
       aria-label="Interactive 3D realistic globe showing satellites, the live ISS position and recent earthquakes"
     >
       <Globe reduce={reduce} />
+      <OrbitControls
+        enableZoom={false}
+        enablePan={false}
+        rotateSpeed={0.5}
+        enableDamping
+        dampingFactor={0.08}
+      />
     </Canvas>
   );
 }

@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-9b8cff?style=for-the-badge&labelColor=08061a">
 </p>
 
-<p><em>Live space exploration, astronomy, Earth events and science news in one immersive dashboard.<br>
+<p><em>Live space exploration, astronomy, Earth events and science news in one bilingual (EN/TR) observatory.<br>
 Every feed is proxied, cached, timed out, health-checked and named when it fails.</em></p>
 
 </div>
@@ -18,9 +18,9 @@ Every feed is proxied, cached, timed out, health-checked and named when it fails
 
 ## One screen for the planet and the sky
 
-Nebula pulls a dozen public sources into a single dashboard: where the ISS is right now and when it next passes over you, what is launching, which asteroids are close, where the ground is shaking, what is burning, how stormy the Sun is, and what NASA photographed today. Around it sit pages for tonight's sky, the Earth monitor, launches, space news, a chronological timeline and your own favourites.
+Nebula opens with an interactive WebGL2 **Etched Accretion** singularity hero (`100svh`, pointer parallax and hold-to-feed interaction) and brings a dozen public science feeds into a calm, editorial observatory: a photorealistic 3D Earth with live ISS coordinates, procedural copperplate observatory plates drawn from real telemetry, what is launching next, which asteroids pass nearby, where the ground is shaking, how stormy the Sun is, and NASA's Astronomy Picture of the Day. Around the landing stage sit a streamlined 4-band mission dashboard, sky almanac, Earth monitor, launch manifest, space weather desk, newsroom, unified timeline and local favourites.
 
-> **A dashboard that lies is worse than none.** An audit removed every fabricated constant: a hard-coded "27,600 km/h" ISS speed, a report that invented the station's altitude, Kp labels shifted one step against the NOAA G scale, and a dead feed that put the ISS in the Gulf of Guinea at 0°, 0°. Every number now comes from a measurement, and every failure names its source and cause.
+> **A dashboard that lies is worse than none.** Every reading comes from an upstream measurement rather than placeholder constants, dead feeds name their upstream source and error cause, and archival datasets (such as InSight Mars weather) label their last transmission date explicitly.
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -28,22 +28,18 @@ Nebula pulls a dozen public sources into a single dashboard: where the ISS is ri
 
 | | |
 |---|---|
-| **Rotating Earth** | A WebGL globe on the hero, with textures served from the same origin, and the most recent recorded event linking to the Earth monitor. |
-| **ISS live tracker** | Measured position, altitude, velocity and eclipse state, plus the next visible pass for your location. |
-| **Stat bar** | M4.0+ count and mean magnitude over seven days, measured ISS altitude, hazardous asteroids, current Kp and active solar storms (G-scale alerts in the last 24 hours). |
-| **Launches** | Latest and upcoming launches with countdowns, and a success record reported as "N of M" over a named UTC range. |
-| **Earthquake monitor** | USGS M4.0+ events on a Leaflet map, with a magnitude and tsunami filter. |
-| **Earth layers** | NASA EONET wildfires, volcanoes and severe storms, plus RainViewer precipitation radar. |
-| **Solar activity** | NOAA SWPC Kp index, aurora probability and geomagnetic storms. |
-| **Near-Earth asteroids** | NASA NEO hazardous asteroid tracking. |
-| **APOD** | The Astronomy Picture of the Day, with a fullscreen mode. |
-| **Sky almanac** | Moon phase and Earth's rotation computed from the clock, constellation and planet of the day, an astronomy fact, a quote, and Mars weather (clearly marked archival). |
-| **Space news** | Headlines from the Spaceflight News API. |
-| **People in space** | The current crew roster. |
-| **Universal search** | <kbd>⌘</kbd> <kbd>K</kbd> searches records, not just pages: missions, rockets, planets, astronauts, today's NEOs and recent quakes. |
-| **Alerts** | Browser notifications for a big quake, a geomagnetic storm, a launch an hour before liftoff and a new APOD, each with its own toggle and rule. |
-| **Favourites** | Save anything, then export and import the collection as a file. |
-| **Daily report** | An optional generated briefing built only from the measured numbers on the page. |
+| **Etched Accretion hero & banners** | Self-contained WebGL2 black-hole engraving shader (`crimson`, `ember`, `glacier`, `ash`, `orchid` presets) powering the `100svh` landing hero and shared inner-page observatory banners, honouring `prefers-reduced-motion`. |
+| **Observatory engraving plates** | Three high-DPI copperplate canvas folios driven by live telemetry — Solar Corona & IMF Flux (with live NASA SDO AIA 171Å toggle), Lithosphere Seismic Wavefronts with seismograph drum trace, and Keplerian Orbital Ephemeris — exportable as PNG prints. |
+| **Realistic 3D Earth globe** | React Three Fiber globe built with self-hosted NASA Blue Marble, topology bump, and ocean specular textures, procedural drifting cloud layer, dual Rayleigh Fresnel atmosphere shaders, 51.6° orbital ring, and live ISS & USGS pins. |
+| **Mission dashboard (`/dashboard`)** | Four-band layout: compact `LiveBriefing` ticker and single-row `StatsBar` ledger, AI daily briefing + quiet `WatchlistCard` alert rules, APOD/ISS/Solar/NEO grid, launches/weather/crew roster, and the 7-day earthquake log. |
+| **ISS live tracker** | Measured position, altitude, velocity and eclipse state, 90-minute SGP4 ground track, and next visible pass prediction for your coordinates. |
+| **Launches & countdowns** | Upcoming and past manifests across SpaceX or all agencies via Launch Library 2, live `Countdown` timers, and verified launch success statistics over named UTC ranges. |
+| **Earthquake monitor & layers** | USGS M4.0+ events on a Leaflet map with magnitude charts, depth histogram, tsunami filter, NASA EONET wildfires/volcanoes/storms, and RainViewer precipitation radar. |
+| **Solar activity & Mars desk** | NOAA SWPC Kp index (accurate G-scale boundaries), solar wind plasma/IMF telemetry (`no-store` uncached >2 MB feeds), SDO imagery, NASA NeoWs asteroids, and Curiosity/Perseverance/InSight rover status. |
+| **Sky almanac (`/sky`)** | Moon phase and Earth rotation computed from the UTC clock, constellation and planet of the day, astronomy fact, space quote, and clearly archival Mars meteorology. |
+| **Space news (`/news`)** | Filterable and pageable dispatches from Spaceflight News API v4. |
+| **Bilingual EN / TR & Search** | Full English and Turkish dictionaries (`lib/i18n.tsx`) persisted across reloads, grouped `Monitor · Cosmos · Archive` navigation, and <kbd>⌘</kbd> <kbd>K</kbd> command palette searching across records and feeds. |
+| **Alerts & Favourites** | Deduplicated browser notifications for quakes, geomagnetic storms, upcoming launches and APOD, plus JSON-validated export/import favourites. |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -51,13 +47,13 @@ Nebula pulls a dozen public sources into a single dashboard: where the ISS is ri
 
 | Rule | What it prevents |
 |---|---|
-| Every upstream fetch has a 10 s timeout, and routes return 502 with the source and cause. | A stalled source holding a route open until the platform timeout, or a generic 500 nobody can act on. |
-| The footer's System Status list is a live probe of every source through `/api/health`. | It used to render "Operational" as static markup whether or not anything was reachable. |
-| A failed feed is named above search results with its upstream message. | An empty result over a dead feed being read as "no such record". |
-| Every sky card declares whether its numbers are computed, curated or archival, and names the publication. | Curated facts passing as live data; InSight's Mars weather has not updated since 2020 and says so. |
-| "Of the day" records are picked by whole UTC days since the epoch, not at random. | Server and client disagreeing (hydration mismatch) and "today's" record changing on reload. |
-| Alerts are deduplicated per source with stable ids (APOD by date, launches by Launch Library id, storms by Kp level and UTC day). | Re-alerting after navigation, or alerting twice when a launch's NET moves. |
-| Search matches by prefix, then substring, then every word, instead of fuzzy subsequence. | "M6" matching an astronaut's name and "Falcon" matching Mexican earthquakes. |
+| Upstream fetches enforce explicit timeouts, returning `502` with source name and cause. | A stalled feed hanging a route until platform timeout, or an opaque `500`. |
+| Real-time NOAA solar wind feeds (`> 2 MB`) bypass Next data cache cleanly (`cache: "no-store"`). | Silent cache write failures and stale magnetosphere readings. |
+| The footer's System Telemetry matrix probes all live sources through `/api/health`. | Static fake "Operational" badges masking unreachable upstreams. |
+| A failed feed is surfaced inline with retry controls and exact upstream details. | Empty states being misread as "zero events" or "no results". |
+| Every sky card declares whether values are computed, curated, or archival and names its source. | Historical datasets (e.g. InSight Mars sols) masquerading as live weather. |
+| Daily report synthesis waits for live feed resolution and keys strictly on measurement count and locale. | Duplicate `/api/ai-report` calls firing on initial zero-state placeholders. |
+| Alerts deduplicate cleanly using stable IDs (APOD date, LL2 launch ID, storm Kp level + UTC day). | Repeat notifications when navigating or when a launch NET shifts. |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -66,7 +62,7 @@ Nebula pulls a dozen public sources into a single dashboard: where the ISS is ri
 ```mermaid
 flowchart LR
   subgraph Upstream
-    NASA[NASA APOD · NEO · EONET · InSight]
+    NASA[NASA APOD · NEO · EONET · Mars · SDO]
     NOAA[NOAA SWPC]
     USGS[USGS quakes]
     LL[Launch Library 2]
@@ -75,20 +71,21 @@ flowchart LR
   end
   Upstream --> API[app/api routes<br/>timeout · cache · health]
   API --> Q[TanStack Query]
-  Q --> UI[Dashboard · Sky · Earth · Launches · News · Timeline · Favourites]
-  UI --> G[R3F globe]
-  UI --> M[Leaflet maps]
-  UI --> C[Recharts]
-  UI --> N[Notifications]
+  Q --> UI[Landing · Dashboard · Sky · Earth · Launches · News · Timeline · Favourites]
+  UI --> W[WebGL2 Etched Accretion & Canvas Plates]
+  UI --> G[R3F realistic 3D globe]
+  UI --> M[Leaflet maps & Recharts]
+  UI --> N[EN/TR i18n · Search · Notifications]
 ```
 
 | Layer | Stack |
 |---|---|
-| App | Next.js 16 (App Router, ISR) · React 19 · TypeScript |
-| UI | Tailwind CSS · Framer Motion · cmdk · lucide |
-| Data | TanStack Query · zustand · satellite.js · suncalc · date-fns |
-| Visuals | React Three Fiber · Leaflet · Recharts |
-| Tests | Playwright end-to-end and API contract specs, run in CI with lint, typecheck, build and a production dependency audit |
+| App | Next.js 16 (App Router) · React 19 · TypeScript (`Space Grotesk`, `Fraunces`, `Plus Jakarta Sans`, `JetBrains Mono`) |
+| UI | Tailwind CSS v4 · Framer Motion · cmdk · lucide-react |
+| Shaders & 3D | Custom WebGL2 fragment shader (`EtchedAccretion`) · React Three Fiber & drei · Three.js · high-DPI Canvas 2D |
+| Data | TanStack Query v5 · Zustand · `satellite.js` · `suncalc` · `date-fns` |
+| Maps & Charts | Leaflet / `react-leaflet` · Recharts |
+| Tests | Playwright end-to-end and API contract specs, alongside `tsc --noEmit`, `eslint`, and production `next build` |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -96,20 +93,21 @@ flowchart LR
 
 | Route | Page |
 |---|---|
-| `/` · `/dashboard` | Landing and the live dashboard |
-| `/sky` | The sky almanac |
-| `/space` | ISS, asteroids, APOD and solar activity |
-| `/earth` | Earthquakes, natural events and radar on the map |
-| `/launches` | Upcoming and past launches with the success record |
-| `/news` | Space news |
-| `/timeline` | Every event in one chronological line |
-| `/favorites` | Saved items, export and import |
+| `/` | Etched Accretion WebGL2 hero, realistic 3D globe & copperplate observatory plates |
+| `/dashboard` | Streamlined 4-band live mission control & watchlist |
+| `/sky` | Sky almanac, Mars rovers & archival InSight weather |
+| `/space` | ISS telemetry, asteroids, APOD & NOAA solar observatory |
+| `/earth` | Earthquakes, EONET natural hazards & RainViewer precipitation radar |
+| `/launches` | Upcoming and past manifests with live countdowns & agency filter |
+| `/news` | Filterable spaceflight newsroom |
+| `/timeline` | Unified chronological event stream with category filters |
+| `/favorites` | Saved items collection with schema-checked JSON export/import |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
 ## Türkçe özet
 
-**Nebula**, uzay ve Dünya olaylarını tek ekranda toplayan canlı bir bilim paneli. ISS'in anlık konumu ve senin konumundan bir sonraki geçişi, yaklaşan roket fırlatmaları, Dünya'ya yakın asteroitler, depremler, orman yangınları, yağış radarı, Güneş etkinliği ve NASA'nın günün astronomi fotoğrafı aynı yerde. ⌘K ile kayıtlar arasında arama, deprem ve fırtına bildirimleri, dışa aktarılabilir favoriler var. Tüm veriler zaman aşımlı ve önbellekli API rotalarından geçiyor; her kaynağın sağlığı canlı izleniyor ve hiçbir sayı uydurma değil.
+**Nebula**, uzay ve Dünya olaylarını tek yerde toplayan çift dilli (TR/EN) canlı bilim gözlemevidir. Tam ekran **Etched Accretion** WebGL2 kara delik açılışı, bulut katmanlı ve Fresnel atmosferli gerçekçi 3B Dünya küresi, canlı NOAA/USGS/ISS verilerinden üretilen bakır gravür gözlemevi levhaları, 4 bantlı sadeleştirilmiş görev paneli (`/dashboard`), yaklaşan roket fırlatmaları, asteroitler, depremler, orman yangınları, yağış radarı ve NASA günün astronomi fotoğrafını içerir. Tüm veriler zaman aşımlı 15 API rotasından geçer; kaynak sağlığı footer telemetri şeridinden canlı izlenir.
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -120,19 +118,20 @@ npm install
 cp .env.example .env.local   # NASA API key (optional, DEMO_KEY works)
 npm run dev                  # http://localhost:3000
 npm run typecheck
-npm test                     # Playwright e2e + API contracts
+npm run lint
 npm run build
+npm test                     # Playwright e2e + API contracts
 ```
 
-`NASA_API_KEY` is optional. `OPENAI_API_KEY` turns on the daily report; without it the report is assembled from the measured numbers only. `NEXT_PUBLIC_SITE_URL` sets canonical URLs.
+`NASA_API_KEY` is optional (`DEMO_KEY` works with NASA hourly limits). `OPENAI_API_KEY` enables model-synthesised daily briefings; without it the briefing uses measured figures only. `NEXT_PUBLIC_SITE_URL` configures canonical and Open Graph metadata URLs.
 
 ```
-app/            routes: dashboard, sky, space, earth, launches, news, timeline, favorites
-app/api/        fifteen API routes: upstream proxies with timeouts, caching and health checks
-components/     dashboard, sky, earth, news and ui building blocks
-hooks/          alerts and data hooks
-lib/            upstream client, astronomy, natural events, search index, favourites file
-tests/          e2e and API contract specs
+app/            routes: landing (/), dashboard, sky, space, earth, launches, news, timeline, favorites
+app/api/        fifteen API routes: upstream proxies with timeouts, caching and /api/health probes
+components/     dashboard, earth, landing, news, sky and ui (incl. EtchedAccretion & EtchedBanner)
+hooks/          alerts, favorites, hydration, clock, theme and watchlist hooks
+lib/            upstream client, astronomy, dataviz, EN/TR dictionaries, natural events, search index
+tests/          Playwright E2E and API contract specs
 ```
 
 <div align="center">

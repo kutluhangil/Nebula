@@ -11,6 +11,28 @@ const AURORA_URL =
 const ALERTS_URL = "https://services.swpc.noaa.gov/products/alerts.json";
 const XRAY_FLARES_URL =
   "https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json";
+const RTSW_WIND_URL =
+  "https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json";
+const RTSW_MAG_URL =
+  "https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json";
+const SDO_IMAGE_URL =
+  "https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0171.jpg";
+
+interface RtswWindEntry {
+  time_tag: string;
+  active?: boolean;
+  source?: string;
+  proton_speed?: number | null;
+  proton_density?: number | null;
+}
+
+interface RtswMagEntry {
+  time_tag: string;
+  active?: boolean;
+  source?: string;
+  bt?: number | null;
+  bz_gse?: number | null;
+}
 
 interface KpEntry {
   time_tag: string;
@@ -35,7 +57,9 @@ interface XrayFlare {
 }
 
 async function getJson<T>(url: string, revalidate: number): Promise<T> {
-  const res = await fetch(url, withTimeout({ next: { revalidate } }));
+  const init: RequestInit =
+    revalidate === 0 ? { cache: "no-store" } : { next: { revalidate } };
+  const res = await fetch(url, withTimeout(init));
   if (!res.ok) {
     throw new Error(`NOAA SWPC request to ${url} failed with ${res.status}`);
   }
@@ -88,14 +112,44 @@ function flaresToday(flares: XrayFlare[]): number {
   }).length;
 }
 
+function latestValidWind(entries: RtswWindEntry[]): RtswWindEntry | null {
+  let best: RtswWindEntry | null = null;
+  let bestTs = -Infinity;
+  for (const e of entries) {
+    if (typeof e.proton_speed !== "number" || !Number.isFinite(e.proton_speed)) continue;
+    const ts = Date.parse(e.time_tag);
+    if (Number.isFinite(ts) && ts > bestTs) {
+      bestTs = ts;
+      best = e;
+    }
+  }
+  return best;
+}
+
+function latestValidMag(entries: RtswMagEntry[]): RtswMagEntry | null {
+  let best: RtswMagEntry | null = null;
+  let bestTs = -Infinity;
+  for (const e of entries) {
+    if (typeof e.bt !== "number" || !Number.isFinite(e.bt)) continue;
+    const ts = Date.parse(e.time_tag);
+    if (Number.isFinite(ts) && ts > bestTs) {
+      bestTs = ts;
+      best = e;
+    }
+  }
+  return best;
+}
+
 export async function GET() {
   try {
-    const [kpRaw, aurora, alerts, flares] = await Promise.all([
+    const [kpRaw, aurora, alerts, flares, windResult, magResult] = await Promise.all([
       // The K index feed is a header row followed by data rows.
       getJson<[string, string, string, string][]>(KP_URL, 300),
       getJson<AuroraPayload>(AURORA_URL, 300),
       getJson<AlertEntry[]>(ALERTS_URL, 300),
       getJson<XrayFlare[]>(XRAY_FLARES_URL, 300),
+      getJson<RtswWindEntry[]>(RTSW_WIND_URL, 0).catch(() => null),
+      getJson<RtswMagEntry[]>(RTSW_MAG_URL, 0).catch(() => null),
     ]);
 
     // The products endpoint serves either an array-of-arrays with a header row
@@ -108,14 +162,44 @@ export async function GET() {
       : (kpRaw as unknown as KpEntry[]);
 
     const { kpIndex, observedAt } = latestKp(kpEntries);
+    const kpHistory = kpEntries.slice(-16).map((entry) => ({
+      timeTag: entry.time_tag,
+      kp: Math.round(entry.Kp * 10) / 10,
+    }));
+
+    const wind = windResult ? latestValidWind(windResult) : null;
+    const mag = magResult ? latestValidMag(magResult) : null;
+    const solarWind =
+      wind && typeof wind.proton_speed === "number"
+        ? {
+            speedKms: Math.round(wind.proton_speed),
+            density:
+              typeof wind.proton_density === "number" && Number.isFinite(wind.proton_density)
+                ? Math.round(wind.proton_density * 10) / 10
+                : null,
+            bt:
+              mag && typeof mag.bt === "number" && Number.isFinite(mag.bt)
+                ? Math.round(mag.bt * 10) / 10
+                : null,
+            bz:
+              mag && typeof mag.bz_gse === "number" && Number.isFinite(mag.bz_gse)
+                ? Math.round(mag.bz_gse * 10) / 10
+                : null,
+            source: wind.source ?? mag?.source ?? "DSCOVR",
+            observedAt: wind.time_tag,
+          }
+        : null;
 
     return NextResponse.json({
       kpIndex,
       observedAt,
+      kpHistory,
       auroraProbability: peakAuroraProbability(aurora),
       auroraObservedAt: aurora["Observation Time"],
       geoStorms: activeGeoStorms(alerts),
       solarFlares: flaresToday(Array.isArray(flares) ? flares : [flares]),
+      solarWind,
+      sdoImageUrl: SDO_IMAGE_URL,
       source: "NOAA Space Weather Prediction Center",
     });
   } catch (error) {

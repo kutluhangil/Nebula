@@ -3,10 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { fetchJson } from "@/lib/api-client";
+import { useLocale } from "@/lib/i18n";
+import EtchedAccretion from "@/components/ui/etched-accretion";
+import {
+  ObservatoryPlates,
+  type PlateQuake,
+  type TrackPoint,
+} from "@/components/landing/observatory-plates";
 import {
   ArrowUpRight,
   Globe,
@@ -16,67 +23,62 @@ import {
   Rocket,
   Radio,
   Newspaper,
+  Compass,
 } from "lucide-react";
 
-// The 3D globe is a client-only, lazily-loaded island so it never blocks the
-// hero's first paint and stays out of every other route's bundle.
 const Globe3D = dynamic(() => import("@/components/earth/globe-3d"), {
   ssr: false,
   loading: () => <div className="w-full h-full" />,
 });
 
-/* ---------- Latest recorded event ---------- */
-
-interface LatestQuake {
-  features: {
-    id: string;
-    properties: { mag: number; place: string; time: number };
-  }[];
+interface LatestQuakePayload {
+  features: PlateQuake[] &
+    {
+      id: string;
+      properties: { mag: number; place: string; time: number };
+      geometry: { coordinates: [number, number, number] };
+    }[];
 }
 
-/**
- * The most recent event any of the feeds has recorded. The hero previously
- * only described the platform; this makes the landing page itself live.
- */
 function LatestEvent() {
-  const { data, isLoading, isError } = useQuery<LatestQuake>({
+  const { t, dateLocale } = useLocale();
+  const { data, isLoading, isError } = useQuery<LatestQuakePayload>({
     queryKey: ["earthquakes"],
     queryFn: () => fetchJson("/api/earthquakes"),
     staleTime: 1000 * 60 * 10,
   });
 
-  // The feed is chronological, so the first entry is the most recent event.
   const latest = data?.features?.[0];
 
   if (isLoading) {
     return (
       <span className="tracking-[0.2em] uppercase" aria-busy="true">
-        Reading feeds…
+        {t.home.readingFeeds}
       </span>
     );
   }
 
-  // The hero must never advertise data it does not have.
   if (isError || !latest) return null;
 
   return (
     <Link
       href="/earth"
-      className="flex items-center gap-2 transition-colors hover:text-[var(--text-dim)]"
+      className="flex items-center gap-2 transition-colors hover:text-[var(--accent)]"
     >
-      <Activity className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-      <span className="tabular text-[var(--text-dim)] tracking-widest">
+      <Activity className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+      <span className="tabular font-mono text-[var(--text)] tracking-widest">
         M{latest.properties.mag.toFixed(1)}
       </span>
-      <span className="tracking-[0.2em] uppercase">
+      <span className="tracking-[0.14em] uppercase truncate max-w-[260px] sm:max-w-none">
         {latest.properties.place} ·{" "}
-        {formatDistanceToNow(latest.properties.time, { addSuffix: true })}
+        {formatDistanceToNow(latest.properties.time, {
+          addSuffix: true,
+          locale: dateLocale,
+        })}
       </span>
     </Link>
   );
 }
-
-/* ---------- Live UTC clock (mono telemetry) ---------- */
 
 function useUTC() {
   const [dt, setDt] = useState({ time: "--:--:--", date: "" });
@@ -106,149 +108,294 @@ function useUTC() {
   return dt;
 }
 
-const modules = [
-  {
-    icon: Newspaper,
-    title: "Space news",
-    description: "Curated aerospace reporting from agencies worldwide, via the Spaceflight News API.",
-  },
-  {
-    icon: Satellite,
-    title: "Live ISS tracking",
-    description: "The station's orbital position, streamed and updated as it circles the planet.",
-  },
-  {
-    icon: Activity,
-    title: "Earth events",
-    description: "Earthquakes as they happen — magnitude, depth and location, mapped from USGS feeds.",
-  },
-  {
-    icon: Rocket,
-    title: "Launches",
-    description: "Upcoming SpaceX manifests, mission profiles and the record of flights already flown.",
-  },
-  {
-    icon: Globe,
-    title: "NASA imagery",
-    description: "The Astronomy Picture of the Day, paired with a plain-language scientific read.",
-  },
-  {
-    icon: Zap,
-    title: "Solar weather",
-    description: "Kp index, solar flares and geomagnetic storm probability, before the aurora arrives.",
-  },
-];
-
-const sources = ["NASA", "SpaceX", "USGS", "NOAA", "ISS"];
+const sources = ["NASA", "SpaceX", "USGS", "NOAA", "LL2"];
 
 export default function HomePage() {
-  const { scrollYProgress } = useScroll();
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.28], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.28], [0, -40]);
+  const { t, locale } = useLocale();
   const utc = useUTC();
+
+  const { data: quakes } = useQuery<LatestQuakePayload>({
+    queryKey: ["earthquakes"],
+    queryFn: () => fetchJson("/api/earthquakes"),
+    staleTime: 1000 * 60 * 10,
+  });
+  const { data: solar } = useQuery<{
+    kpIndex: number;
+    sdoImageUrl?: string;
+    solarWind?: { speedKms: number; bzGse: number | null } | null;
+  }>({
+    queryKey: ["solar"],
+    queryFn: () => fetchJson("/api/solar"),
+    staleTime: 1000 * 60 * 5,
+  });
+  const { data: crew } = useQuery<{ people: unknown[] }>({
+    queryKey: ["astronauts"],
+    queryFn: () => fetchJson("/api/astronauts"),
+    staleTime: 1000 * 60 * 60,
+  });
+  const { data: launches } = useQuery<{ upcoming: unknown[] }>({
+    queryKey: ["spacex"],
+    queryFn: () => fetchJson("/api/spacex"),
+    staleTime: 1000 * 60 * 30,
+  });
+  const { data: space } = useQuery<{ asteroids: unknown[] }>({
+    queryKey: ["space"],
+    queryFn: () => fetchJson("/api/space"),
+    staleTime: 1000 * 60 * 60,
+  });
+  const { data: iss } = useQuery<{
+    iss_position: { latitude: string; longitude: string };
+    groundTrack?: TrackPoint[];
+  }>({
+    queryKey: ["iss"],
+    queryFn: () => fetchJson("/api/iss"),
+    refetchInterval: 15000,
+  });
+
+  const crewCount = Array.isArray(crew?.people) ? crew.people.length : undefined;
+  const issLatNum = iss ? Number(iss.iss_position.latitude) : undefined;
+  const issLonNum = iss ? Number(iss.iss_position.longitude) : undefined;
+
+  const modules = [
+    {
+      numeral: "01",
+      href: "/news",
+      icon: Newspaper,
+      title: t.home.modules.newsTitle,
+      description: t.home.modules.newsDesc,
+      metric: "SNAPI · v4",
+    },
+    {
+      numeral: "02",
+      href: "/dashboard",
+      icon: Satellite,
+      title: t.home.modules.issTitle,
+      description: t.home.modules.issDesc,
+      metric:
+        crewCount !== undefined
+          ? `${crewCount} ${t.home.liveMetricCrew}`
+          : "LEO · 5s",
+    },
+    {
+      numeral: "03",
+      href: "/earth",
+      icon: Activity,
+      title: t.home.modules.earthTitle,
+      description: t.home.modules.earthDesc,
+      metric: quakes
+        ? `${quakes.features.length} ${t.home.liveMetricQuakes}`
+        : "USGS · EONET",
+    },
+    {
+      numeral: "04",
+      href: "/launches",
+      icon: Rocket,
+      title: t.home.modules.launchesTitle,
+      description: t.home.modules.launchesDesc,
+      metric: launches
+        ? `${launches.upcoming.length} ${t.home.liveMetricUpcoming}`
+        : "LL2",
+    },
+    {
+      numeral: "05",
+      href: "/sky",
+      icon: Globe,
+      title: t.home.modules.apodTitle,
+      description: t.home.modules.apodDesc,
+      metric: space
+        ? `${space.asteroids.length} ${t.home.liveMetricNeos}`
+        : "APOD · Mars",
+    },
+    {
+      numeral: "06",
+      href: "/space",
+      icon: Zap,
+      title: t.home.modules.solarTitle,
+      description: t.home.modules.solarDesc,
+      metric: solar ? `Kp ${solar.kpIndex} · ${t.home.liveMetricKp}` : "NOAA · SDO",
+    },
+  ];
+
+  const deskCounters = [
+    {
+      href: "/earth",
+      label: t.dashboard.stats.quakes,
+      value: quakes ? String(quakes.features.length) : "—",
+    },
+    {
+      href: "/space",
+      label: t.dashboard.stats.kp,
+      value: solar ? `Kp ${solar.kpIndex}` : "—",
+    },
+    {
+      href: "/dashboard",
+      label: t.dashboard.sections.crew,
+      value: crewCount !== undefined ? String(crewCount) : "—",
+    },
+    {
+      href: "/launches",
+      label: t.dashboard.stats.launches,
+      value: launches ? String(launches.upcoming.length) : "—",
+    },
+  ];
 
   const ease = [0.16, 1, 0.3, 1] as const;
 
   return (
     <div className="relative w-full">
-      {/* ---------- Hero ---------- */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-28 pb-16 overflow-hidden">
-        <motion.div
-          style={{ opacity: heroOpacity, y: heroY }}
-          className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease }}
-            className="eyebrow-pill mb-10"
-          >
-            <span className="live-dot" />
-            Planet intelligence platform
-          </motion.div>
+      {/* ---------- Etched Accretion Hero (100svh) ---------- */}
+      <EtchedAccretion height="100svh" preset="crimson">
+        <div className="pointer-events-none mx-auto flex h-full max-w-7xl flex-col justify-end p-6 text-white sm:p-10 md:p-14">
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+            <div className="max-w-xl">
+              <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-[#e9e4df]/55">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#ff3b47]" />
+                {t.home.volumeLabel}
+              </div>
+              <h1 className="font-serif text-5xl font-light leading-[1.03] tracking-tight text-[#e9e4df] sm:text-7xl">
+                {locale === "tr" ? (
+                  <>
+                    Ufuktan <span className="italic text-[#ff3b47]">hiçbir şey</span>
+                    <br />
+                    kaçamaz.
+                  </>
+                ) : (
+                  <>
+                    Nothing <span className="italic text-[#ff3b47]">escapes</span>
+                    <br />
+                    the horizon.
+                  </>
+                )}
+              </h1>
+              <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-white/45">
+                {locale === "tr"
+                  ? "kaydırmak için gezdir · beslemek için basılı tut"
+                  : "move to drift · hold to feed it"}
+              </p>
+            </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, ease, delay: 0.1 }}
-            className="w-[300px] h-[300px] md:w-[440px] md:h-[440px] mb-6"
-          >
-            <Globe3D />
-          </motion.div>
+            <div className="pointer-events-auto flex flex-col items-start gap-3 md:items-end">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#ff3b47] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#d3121f]"
+                >
+                  {t.home.openDashboard}
+                  <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} />
+                </Link>
+                <Link
+                  href="/sky"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-5 py-2.5 text-sm font-medium text-[#e9e4df] backdrop-blur-md transition-colors hover:border-[#ff3b47]"
+                >
+                  <Compass className="h-4 w-4 text-[#ff3b47]" strokeWidth={1.6} />
+                  {t.home.exploreSky}
+                </Link>
+              </div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
+                {utc.time} UTC · {sources.join(" · ")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </EtchedAccretion>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease, delay: 0.2 }}
-            className="display-1 text-[var(--text)] mb-5"
-          >
-            Mission control<br />
-            <span className="italic text-[var(--text-dim)]">for the curious.</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease, delay: 0.3 }}
-            className="text-base md:text-lg text-[var(--text-dim)] max-w-2xl leading-relaxed mb-8 font-light"
-          >
-            Live telemetry from NASA, SpaceX, USGS and NOAA — astronomy, launches,
-            earthquakes and solar weather, unified in one calm interface.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease, delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center gap-3 mb-10"
-          >
-            <Link href="/dashboard" className="btn-primary group">
-              Open dashboard
-              <span className="btn-disc">
-                <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
+      {/* ---------- Planetary Observatory Wire & 3D Sphere ---------- */}
+      <section className="relative border-t border-[var(--border)] py-16 px-4 md:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-7 space-y-6">
+            <div className="eyebrow">{t.home.badge}</div>
+            <h2 className="font-serif text-3xl sm:text-5xl text-[var(--text)] leading-[1.08]">
+              {t.home.heroLine1}{" "}
+              <span className="italic text-[var(--accent)]">
+                {t.home.heroLine2}
               </span>
-            </Link>
-            <Link href="/news" className="btn-ghost">
-              Read space news
-            </Link>
-          </motion.div>
+            </h2>
+            <p className="text-[var(--text-dim)] text-base md:text-lg font-light leading-relaxed max-w-xl">
+              {t.home.heroDesc}
+            </p>
 
-          {/* Telemetry strip */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.6 }}
-            className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 font-mono text-xs text-[var(--text-faint)]"
-          >
-            <span className="flex items-center gap-2">
-              <Radio className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-              <span className="tabular text-[var(--text-dim)] tracking-widest">{utc.time}</span>
-              <span className="tracking-[0.2em] uppercase">UTC · {utc.date}</span>
-            </span>
-            <span className="hidden sm:block w-px h-3 bg-[var(--border-strong)]" />
-            <LatestEvent />
-            <span className="hidden sm:block w-px h-3 bg-[var(--border-strong)]" />
-            <span className="tracking-[0.2em] uppercase">Feeds: {sources.join(" · ")}</span>
-          </motion.div>
-        </motion.div>
+            {/* Broadsheet Telemetry Readout Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 border-y border-[var(--border)] divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+              {deskCounters.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="py-3.5 px-3 first:pl-0 hover:bg-[var(--surface-2)] transition-colors"
+                >
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--text-faint)] mb-1 truncate">
+                    {item.label}
+                  </div>
+                  <div className="font-serif text-2xl text-[var(--text)] tabular-nums">
+                    {item.value}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 font-mono text-[11px] text-[var(--text-faint)] pt-1">
+              <LatestEvent />
+              <span className="flex items-center gap-2 uppercase tracking-[0.18em]">
+                <Radio className="w-3.5 h-3.5 text-[var(--accent)]" />
+                {sources.join(" · ")}
+              </span>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 relative flex flex-col items-center justify-center">
+            <div className="relative w-[330px] h-[330px] sm:w-[420px] sm:h-[420px] flex items-center justify-center">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-10 rounded-full opacity-35 blur-3xl"
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(79, 168, 255, 0.25) 0%, transparent 70%)",
+                }}
+              />
+              <div className="w-full h-full relative z-10">
+                <Globe3D />
+              </div>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-center font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--text-faint)]">
+              <span className="tabular text-[var(--accent-cyan)] whitespace-nowrap">
+                {issLatNum !== undefined && issLonNum !== undefined
+                  ? `ISS ${issLatNum.toFixed(1)}°, ${issLonNum.toFixed(1)}°`
+                  : "51.6° INC"}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>{t.home.globeCaption}</span>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* ---------- Modules ---------- */}
-      <section className="relative py-28 px-4 md:px-8 w-full max-w-7xl mx-auto">
+      {/* ---------- Interactive Etched Specimen Plates ---------- */}
+      <ObservatoryPlates
+        kpIndex={solar?.kpIndex}
+        solarWindSpeed={solar?.solarWind?.speedKms}
+        bzGse={solar?.solarWind?.bzGse ?? undefined}
+        sdoImageUrl={solar?.sdoImageUrl}
+        quakes={quakes?.features ?? []}
+        issLat={issLatNum}
+        issLon={issLonNum}
+        groundTrack={iss?.groundTrack ?? []}
+        asteroidCount={space?.asteroids?.length}
+      />
+
+      {/* ---------- Six Live Feeds Grid ---------- */}
+      <section className="relative py-20 px-4 md:px-8 w-full max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease }}
-          className="max-w-2xl mb-16"
+          className="max-w-2xl mb-14 border-b border-[var(--border)] pb-8"
         >
-          <div className="eyebrow mb-4">Modules</div>
-          <h2 className="font-serif text-4xl md:text-5xl text-[var(--text)] mb-5 leading-[1.1]">
-            Six live feeds, one interface.
+          <div className="eyebrow mb-4">{t.home.modulesEyebrow}</div>
+          <h2 className="font-serif text-4xl md:text-5xl text-[var(--text)] mb-4 leading-[1.1]">
+            {t.home.modulesHeading}
           </h2>
           <p className="text-[var(--text-dim)] text-lg font-light leading-relaxed">
-            Each module reads a real scientific source and renders it the same way — quiet,
-            legible, and current. Nothing to configure; open it and it is already live.
+            {t.home.modulesSub}
           </p>
         </motion.div>
 
@@ -264,44 +411,69 @@ export default function HomePage() {
                 transition={{ duration: 0.6, delay: (i % 3) * 0.08, ease }}
                 className="bezel group"
               >
-                <div className="bezel-core p-7">
-                  <div className="icon-tile w-11 h-11 rounded-xl inset-well flex items-center justify-center mb-6">
-                    <Icon className="w-5 h-5 text-[var(--accent)]" strokeWidth={1.25} />
+                <Link
+                  href={m.href}
+                  className="bezel-core p-7 flex flex-col justify-between h-full transition-colors"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="icon-tile w-10 h-10 rounded-xl inset-well flex items-center justify-center">
+                          <Icon
+                            className="w-4 h-4 text-[var(--accent)]"
+                            strokeWidth={1.3}
+                          />
+                        </div>
+                        <span className="font-mono text-[10px] tracking-[0.22em] text-[var(--text-faint)]">
+                          № {m.numeral}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-faint)] group-hover:text-[var(--accent)] transition-colors flex items-center gap-1">
+                        {m.metric}
+                        <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                    <h3 className="font-serif text-2xl text-[var(--text)] mb-2.5 group-hover:text-[var(--accent)] transition-colors">
+                      {m.title}
+                    </h3>
+                    <p className="text-[var(--text-dim)] leading-relaxed font-light text-[15px]">
+                      {m.description}
+                    </p>
                   </div>
-                  <h3 className="text-lg font-medium text-[var(--text)] mb-2.5">{m.title}</h3>
-                  <p className="text-[var(--text-dim)] leading-relaxed font-light text-[15px]">
-                    {m.description}
-                  </p>
-                </div>
+                </Link>
               </motion.div>
             );
           })}
         </div>
       </section>
 
-      {/* ---------- Closing CTA ---------- */}
-      <section className="relative py-28 px-4 w-full max-w-5xl mx-auto">
+      {/* ---------- Etched Closing Colophon ---------- */}
+      <section className="relative py-20 px-4 md:px-8 w-full max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease }}
-          className="surface-card relative overflow-hidden px-8 py-16 md:px-16 md:py-20 text-center"
+          className="relative border-t border-b border-[var(--border)] py-14 md:py-16 flex flex-col md:flex-row md:items-center justify-between gap-8"
         >
-          <div className="glow-blob glow-blue w-[500px] h-[400px] -top-40 left-1/2 -translate-x-1/2" />
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="eyebrow mb-5">Ready when you are</div>
-            <h2 className="display-2 text-[var(--text)] mb-6 max-w-2xl">
-              The whole planet, on one screen.
+          <div className="max-w-xl">
+            <div className="eyebrow mb-4 text-[var(--accent)]">{t.home.closingEyebrow}</div>
+            <h2 className="display-2 text-[var(--text)] mb-4">
+              {t.home.closingHeading}
             </h2>
-            <p className="text-[var(--text-dim)] text-lg font-light max-w-xl mb-10">
-              No account, no setup. Open the dashboard and watch Earth and space report in.
+            <p className="text-[var(--text-dim)] text-base md:text-lg font-light">
+              {t.home.closingSub}
             </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <Link href="/dashboard" className="btn-primary group">
-              Open dashboard
+              {t.home.openDashboard}
               <span className="btn-disc">
                 <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
               </span>
+            </Link>
+            <Link href="/timeline" className="btn-ghost">
+              {t.nav.timeline}
             </Link>
           </div>
         </motion.div>

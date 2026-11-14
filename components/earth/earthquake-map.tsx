@@ -1,10 +1,12 @@
 "use client";
 
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { formatDistanceToNow } from "date-fns";
 import { magnitudeColor } from "@/lib/dataviz";
 import { useTheme } from "@/hooks/use-theme";
+import { useLocale } from "@/lib/i18n";
 import {
   EVENT_LAYERS,
   TSUNAMI_LAYER,
@@ -28,11 +30,21 @@ function getMagRadius(mag: number) {
   return Math.max(4, mag * 3);
 }
 
+function FlyToCenter({ center }: { center: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!center) return;
+    map.flyTo(center, 5, { duration: 1.1 });
+  }, [center, map]);
+  return null;
+}
+
 export default function EarthquakeMap({
   earthquakes,
   naturalEvents = [],
   radarTileBase = null,
   highlightTsunami = false,
+  focusCenter = null,
   height = "500px",
 }: {
   earthquakes: EarthquakeFeature[];
@@ -40,9 +52,11 @@ export default function EarthquakeMap({
   /** RainViewer frame base from /api/radar. Null when the weather layer is off. */
   radarTileBase?: string | null;
   highlightTsunami?: boolean;
+  focusCenter?: [number, number] | null;
   height?: string;
 }) {
   const { theme } = useTheme();
+  const { t, dateLocale } = useLocale();
   const canvas = theme === "light" ? "Light" : "Dark";
 
   return (
@@ -53,9 +67,10 @@ export default function EarthquakeMap({
       <MapContainer
         center={[20, 0]}
         zoom={2}
-        style={{ height: "100%", width: "100%", background: "#0a0f1e" }}
+        style={{ height: "100%", width: "100%", background: "var(--surface-1)" }}
         zoomControl={true}
       >
+        <FlyToCenter center={focusCenter} />
         {/* CARTO's dark basemap now stamps "API KEY REQUIRED" across every
             tile it serves without a key, so the map reads from Esri's key-free
             Gray Canvas instead — the dark cut under the dark theme and the
@@ -135,30 +150,33 @@ export default function EarthquakeMap({
               fillOpacity={0.4}
             >
               <Popup className="nebula-popup">
-                <div className="bg-gray-900 text-[var(--text)] p-3 rounded-lg min-w-[200px]">
+                <div className="bg-[var(--bg-elev)] text-[var(--text)] p-3.5 rounded-lg min-w-[205px]">
                   <div className="flex items-center gap-2 mb-2">
                     <span
-                      className="text-lg font-bold font-mono"
+                      className="text-lg font-bold font-mono tabular-nums"
                       style={{ color }}
                     >
                       M{quake.properties.mag.toFixed(1)}
                     </span>
                     {quake.properties.tsunami === 1 && (
-                      <span className="text-blue-400 text-xs">🌊 Tsunami</span>
+                      <span className="text-[var(--accent)] text-xs font-mono">
+                        {t.dashboard.earthquakes.tsunami}
+                      </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-300 mb-1">
+                  <p className="text-sm text-[var(--text)] mb-1.5 leading-snug">
                     {quake.properties.place}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--text-dim)] font-mono">
                     {formatDistanceToNow(quake.properties.time, {
                       addSuffix: true,
+                      locale: dateLocale,
                     })}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Depth: {quake.geometry.coordinates[2].toFixed(1)}km
+                  <p className="text-xs text-[var(--text-faint)] font-mono mt-0.5">
+                    {t.dashboard.earthquakes.depth}: {quake.geometry.coordinates[2].toFixed(1)}km
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--text-faint)] font-mono">
                     {lat.toFixed(3)}°, {lon.toFixed(3)}°
                   </p>
                 </div>
@@ -182,25 +200,26 @@ export default function EarthquakeMap({
               fillOpacity={0.55}
             >
               <Popup className="nebula-popup">
-                <div className="bg-gray-900 text-[var(--text)] p-3 rounded-lg min-w-[200px]">
+                <div className="bg-[var(--bg-elev)] text-[var(--text)] p-3.5 rounded-lg min-w-[205px]">
                   <div
                     className="text-xs font-mono uppercase tracking-wider mb-1"
                     style={{ color: layer.color }}
                   >
                     {layer.label}
                   </div>
-                  <p className="text-sm text-gray-200 mb-1">{event.title}</p>
+                  <p className="text-sm text-[var(--text)] mb-1 leading-snug">{event.title}</p>
                   {event.magnitude !== null && (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-[var(--text-dim)] font-mono">
                       {event.magnitude.toLocaleString()} {event.magnitudeUnit}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--text-dim)] font-mono">
                     {formatDistanceToNow(new Date(event.date), {
                       addSuffix: true,
+                      locale: dateLocale,
                     })}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--text-faint)] font-mono">
                     {event.lat.toFixed(3)}°, {event.lon.toFixed(3)}°
                   </p>
                 </div>

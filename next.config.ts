@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "apod.nasa.gov" },
       { protocol: "https", hostname: "**.nasa.gov" },
+      { protocol: "https", hostname: "mars.nasa.gov" },
+      { protocol: "https", hostname: "sdo.gsfc.nasa.gov" },
     ],
   },
 };

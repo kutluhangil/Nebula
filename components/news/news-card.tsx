@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { ExternalLink, Newspaper } from "lucide-react";
+import { useLocale } from "@/lib/i18n";
 
 export interface SpaceflightArticle {
   id: number;
@@ -24,9 +25,7 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ article, index }: NewsCardProps) {
-  // Feed entries regularly point at images the publisher has since removed.
-  // Without this the browser renders the alt text over an empty box, which
-  // reads as a broken page rather than an article that simply has no artwork.
+  const { t, dateLocale } = useLocale();
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
@@ -36,10 +35,10 @@ export function NewsCard({ article, index }: NewsCardProps) {
       rel="noopener noreferrer"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.5, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
       className="glass-panel group overflow-hidden flex flex-col h-full"
     >
-      <div className="relative h-48 md:h-56 w-full overflow-hidden bg-[var(--surface)]">
+      <div className="relative h-48 md:h-56 w-full overflow-hidden bg-[var(--surface-2)]">
         {article.image_url && !imageFailed ? (
           <Image
             src={article.image_url}
@@ -55,15 +54,14 @@ export function NewsCard({ article, index }: NewsCardProps) {
           </div>
         )}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--surface-1)] via-transparent to-transparent" />
-        
-        {/* News Site Badge */}
+
         <div className="absolute top-4 left-4">
-          <span className="px-2.5 py-1 text-[10px] font-medium tracking-wider text-[var(--text)] uppercase bg-[var(--surface)] backdrop-blur-md rounded-full border border-[var(--border)]">
+          <span className="px-2.5 py-1 text-[10px] font-mono font-medium tracking-wider text-[var(--text)] uppercase bg-[var(--surface-1)]/90 backdrop-blur-md rounded-full border border-[var(--border)]">
             {article.news_site}
           </span>
         </div>
       </div>
-      
+
       <div className="p-6 flex flex-col flex-1">
         <h3 className="font-serif text-lg md:text-xl font-medium text-[var(--text)] leading-snug mb-3 group-hover:text-[var(--accent)] transition-colors line-clamp-3">
           {article.title}
@@ -71,13 +69,16 @@ export function NewsCard({ article, index }: NewsCardProps) {
         <p className="text-[var(--text-dim)] text-sm leading-relaxed mb-4 line-clamp-3 flex-1 font-light">
           {article.summary}
         </p>
-        
+
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-[var(--border)]">
           <span className="text-xs text-[var(--text-faint)] font-mono tracking-wide">
-            {formatDistanceToNow(new Date(article.published_at), { addSuffix: true })}
+            {formatDistanceToNow(new Date(article.published_at), {
+              addSuffix: true,
+              locale: dateLocale,
+            })}
           </span>
-          <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-faint)] group-hover:text-[var(--text)] transition-colors">
-            Read Article
+          <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-faint)] group-hover:text-[var(--accent)] transition-colors">
+            {t.news.readArticle}
             <ExternalLink className="w-3 h-3" />
           </span>
         </div>

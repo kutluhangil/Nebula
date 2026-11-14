@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MapPin, Gauge, ArrowUp, Eye, Sun, Satellite } from "lucide-react";
 import { fetchJson } from "@/lib/api-client";
 import { FeedError } from "@/components/ui/feed-state";
 import { useLocation } from "@/hooks/use-location";
+import { useLocale } from "@/lib/i18n";
+
+interface TrackPoint {
+  lat: number;
+  lon: number;
+}
 
 interface ISSPosition {
   iss_position: { latitude: string; longitude: string };
@@ -15,6 +21,7 @@ interface ISSPosition {
   velocity?: number;
   visibility?: string;
   footprint?: number;
+  groundTrack?: TrackPoint[];
 }
 
 interface ISSPass {
@@ -33,172 +40,195 @@ interface ISSPasses {
   nextVisible: ISSPass | null;
 }
 
-/**
- * wheretheiss.at reports three lighting states: the station in daylight, in
- * Earth's shadow, or sunlit while the ground below is dark — the last being
- * the only one where it can be seen from the surface.
- */
-const VISIBILITY_LABELS: Record<string, string> = {
-  daylight: "Sunlit",
-  eclipsed: "Eclipsed",
-  visible: "Visible now",
-};
-
-/** Compass point for a bearing, e.g. 305 -> "NW". */
 function compass(degrees: number): string {
   const points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   return points[Math.round(degrees / 45) % 8];
 }
 
-function ISSGlobe({
+/** Equirectangular projection helper for a 360x180 world SVG frame. */
+function project(lat: number, lon: number): { x: number; y: number } {
+  return {
+    x: lon + 180,
+    y: 90 - lat,
+  };
+}
+
+/** Splits the 90-minute orbital path into clean segments when crossing the antimeridian. */
+function buildTrackSegments(points: TrackPoint[]): string[] {
+  if (points.length < 2) return [];
+  const segments: string[] = [];
+  let current: string[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const pt = points[i];
+    const prev = i > 0 ? points[i - 1] : null;
+    if (prev && Math.abs(pt.lon - prev.lon) > 180) {
+      if (current.length > 1) segments.push(current.join(" "));
+      current = [];
+    }
+    const { x, y } = project(pt.lat, pt.lon);
+    current.push(`${current.length === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  if (current.length > 1) segments.push(current.join(" "));
+  return segments;
+}
+
+// Simplified equirectangular continent outlines (360x180 coordinate space)
+const LAND_PATHS = [
+  // North America
+  "M15,24 L40,18 L84,18 L112,28 L124,38 L108,48 L96,55 L86,70 L78,78 L72,68 L62,64 L54,54 L46,42 L28,36 Z",
+  // South America
+  "M99,78 L114,80 L142,94 L145,112 L130,132 L114,148 L104,144 L104,116 L96,95 Z",
+  // Greenland
+  "M118,8 L154,7 L158,20 L134,26 L120,20 Z",
+  // Europe + Asia
+  "M169,36 L186,26 L216,20 L270,18 L322,22 L344,32 L322,42 L308,58 L294,76 L278,78 L266,68 L254,78 L242,66 L222,64 L206,56 L186,52 L172,48 Z",
+  // Africa
+  "M166,55 L192,53 L214,62 L228,80 L218,108 L206,125 L194,124 L186,102 L172,88 L162,72 Z",
+  // Australia
+  "M293,104 L322,102 L334,116 L326,130 L298,128 L290,116 Z",
+];
+
+function OrbitalMap({
   lat,
   lon,
+  groundTrack,
 }: {
   lat: number;
   lon: number;
+  groundTrack: TrackPoint[];
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const size = canvas.width;
-    const cx = size / 2;
-    const cy = size / 2;
-    const r = size * 0.4;
-
-    ctx.clearRect(0, 0, size, size);
-
-    // Glow
-    const glow = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.3);
-    glow.addColorStop(0, "rgba(14, 165, 233, 0.1)");
-    glow.addColorStop(1, "rgba(14, 165, 233, 0)");
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.3, 0, Math.PI * 2);
-    ctx.fillStyle = glow;
-    ctx.fill();
-
-    // Globe
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.clip();
-
-    const bg = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r);
-    bg.addColorStop(0, "#1a3a6a");
-    bg.addColorStop(0.5, "#0d2040");
-    bg.addColorStop(1, "#050f20");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, size, size);
-
-    // Grid lines
-    ctx.strokeStyle = "rgba(14, 165, 233, 0.1)";
-    ctx.lineWidth = 0.5;
-    for (let lat = -75; lat <= 75; lat += 30) {
-      const y = cy - (lat / 90) * r;
-      const rLat = Math.sqrt(Math.max(0, r * r - (y - cy) * (y - cy)));
-      ctx.beginPath();
-      ctx.ellipse(cx, y, rLat, rLat * 0.12, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    for (let lng = 0; lng < 360; lng += 30) {
-      const angle = (lng * Math.PI) / 180;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, Math.abs(Math.cos(angle)) * r, r, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-
-    // ISS position dot
-    const issLng = ((lon + 180) / 360) * Math.PI * 2 - Math.PI / 2;
-    const issLat = (lat / 90) * (Math.PI / 2);
-    const issX = cx + Math.cos(issLat) * Math.sin(issLng) * r;
-    const issY = cy - Math.sin(issLat) * r;
-
-    // Orbit ring (simplified)
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(1, 0.25);
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 1.1, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(14, 165, 233, 0.2)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 6]);
-    ctx.stroke();
-    ctx.restore();
-
-    // ISS dot
-    const issGlow = ctx.createRadialGradient(issX, issY, 0, issX, issY, 12);
-    issGlow.addColorStop(0, "rgba(14, 165, 233, 0.8)");
-    issGlow.addColorStop(0.4, "rgba(14, 165, 233, 0.3)");
-    issGlow.addColorStop(1, "rgba(14, 165, 233, 0)");
-    ctx.beginPath();
-    ctx.arc(issX, issY, 12, 0, Math.PI * 2);
-    ctx.fillStyle = issGlow;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(issX, issY, 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#0ea5e9";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(issX, issY, 2, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-
-    // Label
-    ctx.fillStyle = "rgba(14, 165, 233, 0.9)";
-    ctx.font = "bold 8px 'JetBrains Mono', monospace";
-    ctx.fillText("ISS", issX + 8, issY - 5);
-  }, [lat, lon]);
+  const pos = project(lat, lon);
+  const trackPaths = useMemo(
+    () => buildTrackSegments(groundTrack),
+    [groundTrack]
+  );
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={200}
-      height={200}
-      className="w-full max-w-[180px] mx-auto"
-      aria-label="ISS position on globe"
-    />
+    <div className="relative rounded-xl overflow-hidden inset-well p-2">
+      <svg
+        viewBox="0 0 360 180"
+        className="w-full h-auto block"
+        role="img"
+        aria-label={`ISS orbital ground track over ${lat.toFixed(1)}°, ${lon.toFixed(1)}°`}
+      >
+        {/* Graticule grid */}
+        {[-60, -30, 0, 30, 60].map((phi) => (
+          <line
+            key={`lat-${phi}`}
+            x1={0}
+            y1={90 - phi}
+            x2={360}
+            y2={90 - phi}
+            stroke="var(--border)"
+            strokeWidth={phi === 0 ? 0.7 : 0.4}
+            strokeDasharray={phi === 0 ? undefined : "2 3"}
+          />
+        ))}
+        {[-120, -60, 0, 60, 120].map((lam) => (
+          <line
+            key={`lon-${lam}`}
+            x1={lam + 180}
+            y1={0}
+            x2={lam + 180}
+            y2={180}
+            stroke="var(--border)"
+            strokeWidth={lam === 0 ? 0.7 : 0.4}
+            strokeDasharray={lam === 0 ? undefined : "2 3"}
+          />
+        ))}
+
+        {/* Landmasses */}
+        {LAND_PATHS.map((d, idx) => (
+          <path
+            key={idx}
+            d={d}
+            fill="var(--surface-3)"
+            stroke="var(--border-strong)"
+            strokeWidth={0.5}
+            opacity={0.8}
+          />
+        ))}
+
+        {/* 90-minute SGP4 ground track */}
+        {trackPaths.map((d, i) => (
+          <path
+            key={i}
+            d={d}
+            fill="none"
+            stroke="var(--accent-cyan)"
+            strokeWidth={1.3}
+            strokeDasharray="3 2.5"
+            opacity={0.85}
+          />
+        ))}
+
+        {/* Horizon footprint (~20 deg radius in low Earth orbit) */}
+        <circle
+          cx={pos.x}
+          cy={pos.y}
+          r={20}
+          fill="var(--accent)"
+          fillOpacity={0.12}
+          stroke="var(--accent)"
+          strokeWidth={0.8}
+          strokeDasharray="2 2"
+        />
+
+        {/* ISS marker */}
+        <circle cx={pos.x} cy={pos.y} r={3.4} fill="var(--accent)" />
+        <circle
+          cx={pos.x}
+          cy={pos.y}
+          r={6.5}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={0.9}
+          opacity={0.6}
+        />
+
+        <text
+          x={pos.x > 295 ? pos.x - 42 : pos.x + 8}
+          y={pos.y < 16 ? pos.y + 11 : pos.y - 6}
+          fontSize="7.5"
+          fontFamily="var(--font-mono)"
+          fill="var(--text)"
+        >
+          ISS {lat.toFixed(1)}°, {lon.toFixed(1)}°
+        </text>
+      </svg>
+    </div>
   );
 }
 
 export function ISSTracker() {
+  const { t, locale } = useLocale();
   const { coords, status, request } = useLocation();
 
   const { data, isLoading, isError, error, refetch } = useQuery<ISSPosition>({
     queryKey: ["iss"],
-    queryFn: () => fetchJson("/api/iss"),
+    queryFn: () => fetchJson<ISSPosition>("/api/iss"),
     refetchInterval: 5000,
   });
 
-  // Pass prediction is observer-specific, so it only runs once the viewer has
-  // shared a location.
   const { data: passData } = useQuery<ISSPasses>({
-    queryKey: ["iss-passes", coords?.lat ?? null, coords?.lon ?? null],
+    queryKey: ["iss-passes", coords?.lat, coords?.lon],
     queryFn: () =>
-      fetchJson(`/api/iss/passes?lat=${coords!.lat}&lon=${coords!.lon}`),
+      fetchJson<ISSPasses>(
+        `/api/iss/passes?lat=${coords!.lat}&lon=${coords!.lon}`
+      ),
     enabled: Boolean(coords),
     staleTime: 1000 * 60 * 30,
   });
 
   if (isLoading) {
-    return <div className="glass-panel h-64 skeleton" aria-busy="true" />;
+    return <div className="glass-panel h-80 skeleton" aria-busy="true" />;
   }
 
-  // Falling back to zero here would draw the station off the coast of Africa
-  // and label it live telemetry. With no position there is nothing honest to
-  // render, so the card says so instead.
   if (isError || !data) {
     return (
-      <div className="glass-panel h-64 flex items-center justify-center">
+      <div className="glass-panel h-80 flex items-center justify-center">
         <FeedError
-          title="ISS telemetry is unavailable right now."
+          title={t.dashboard.iss.unavailable}
           error={error}
           icon={Satellite}
           onRetry={() => refetch()}
@@ -210,109 +240,120 @@ export function ISSTracker() {
   const lat = parseFloat(data.iss_position.latitude);
   const lon = parseFloat(data.iss_position.longitude);
 
+  const visibilityLabels: Record<string, string> = {
+    daylight: t.dashboard.iss.daylight,
+    eclipsed: t.dashboard.iss.eclipsed,
+    visible: t.dashboard.iss.visible,
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="glass-panel p-4"
     >
-      <ISSGlobe lat={lat} lon={lon} />
+      <OrbitalMap lat={lat} lon={lon} groundTrack={data.groundTrack ?? []} />
 
       <div className="grid grid-cols-2 gap-2 mt-4">
         <StatItem
           icon={MapPin}
-          label="Latitude"
-          value={`${lat.toFixed(4)}°`}
-          color="text-[var(--text-dim)]"
+          label={t.dashboard.iss.lat}
+          value={`${lat.toFixed(3)}°`}
+          tone="text-[var(--text)]"
         />
         <StatItem
           icon={MapPin}
-          label="Longitude"
-          value={`${lon.toFixed(4)}°`}
-          color="text-[var(--text-dim)]"
+          label={t.dashboard.iss.lon}
+          value={`${lon.toFixed(3)}°`}
+          tone="text-[var(--text)]"
         />
         <StatItem
           icon={ArrowUp}
-          label="Altitude"
+          label={t.dashboard.iss.alt}
           value={data?.altitude ? `${Math.round(data.altitude)} km` : "— km"}
-          color="text-cyan-400"
+          tone="text-[var(--accent-cyan)]"
         />
         <StatItem
           icon={Gauge}
-          label="Speed"
+          label={t.dashboard.iss.speed}
           value={
             data?.velocity
               ? `${Math.round(data.velocity).toLocaleString()} km/h`
               : "— km/h"
           }
-          color="text-[var(--text-dim)]"
+          tone="text-[var(--text)]"
         />
         <StatItem
           icon={Sun}
-          label="Sunlight"
+          label={t.dashboard.iss.sunlight}
           value={
             data?.visibility
-              ? VISIBILITY_LABELS[data.visibility] ?? data.visibility
+              ? visibilityLabels[data.visibility] ?? data.visibility
               : "—"
           }
-          color="text-[var(--text-dim)]"
+          tone="text-[var(--text-dim)]"
         />
         <StatItem
           icon={Eye}
-          label="Footprint"
+          label={t.dashboard.iss.footprint}
           value={data?.footprint ? `${data.footprint.toLocaleString()} km` : "—"}
-          color="text-[var(--text-dim)]"
+          tone="text-[var(--text-dim)]"
         />
       </div>
 
-      {/* Next visible pass — requires the viewer's location. */}
+      {/* Next visible pass */}
       <div className="mt-3 pt-3 border-t border-[var(--border)]">
         {!coords ? (
           <button
+            type="button"
             onClick={request}
             disabled={status === "prompting"}
-            className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--text-faint)] hover:text-[var(--text-dim)] transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors disabled:opacity-50 cursor-pointer"
           >
             <MapPin className="w-3 h-3" />
             {status === "prompting"
-              ? "Locating…"
+              ? t.dashboard.iss.locating
               : status === "denied"
-              ? "Location denied — pass times unavailable"
-              : "Use my location for next visible pass"}
+              ? t.dashboard.iss.denied
+              : t.dashboard.iss.useLocation}
           </button>
         ) : passData?.nextVisible ? (
           <div className="text-xs">
             <div className="flex items-center gap-1.5 text-[var(--text-faint)] mb-1">
               <Eye className="w-3 h-3" />
-              Next visible pass
+              {t.dashboard.iss.nextPass}
             </div>
             <div className="text-[var(--text)] font-mono">
-              {new Date(passData.nextVisible.start).toLocaleString([], {
-                weekday: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {new Date(passData.nextVisible.start).toLocaleString(
+                locale === "tr" ? "tr-TR" : "en-US",
+                {
+                  weekday: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }
+              )}
             </div>
-            <div className="text-[var(--text-faint)] mt-0.5">
-              {Math.round(passData.nextVisible.durationSeconds / 60)} min ·
-              peaks {passData.nextVisible.peakElevation}° ·{" "}
-              {compass(passData.nextVisible.startAzimuth)} to{" "}
+            <div className="text-[var(--text-faint)] mt-0.5 font-mono text-[11px]">
+              {Math.round(passData.nextVisible.durationSeconds / 60)} min ·{" "}
+              {t.dashboard.iss.peaks} {passData.nextVisible.peakElevation}° ·{" "}
+              {compass(passData.nextVisible.startAzimuth)} →{" "}
               {compass(passData.nextVisible.endAzimuth)}
             </div>
           </div>
         ) : passData ? (
           <p className="text-xs text-[var(--text-faint)] text-center">
-            No visible pass in the next 48 hours.
+            {t.dashboard.iss.noPass}
           </p>
         ) : (
           <p className="text-xs text-[var(--text-faint)] text-center">
-            Computing passes…
+            {t.dashboard.iss.computing}
           </p>
         )}
       </div>
 
-      <div className="mt-3 pt-3 border-t border-[var(--border)] text-xs text-[var(--text-faint)] text-center font-mono">
-        Updated {data?.timestamp ? new Date(data.timestamp * 1000).toLocaleTimeString() : "—"}
+      <div className="mt-3 pt-3 border-t border-[var(--border)] text-[11px] text-[var(--text-faint)] text-center font-mono">
+        {t.dashboard.iss.updated}{" "}
+        {data?.timestamp ? new Date(data.timestamp * 1000).toLocaleTimeString() : "—"}
       </div>
     </motion.div>
   );
@@ -322,20 +363,20 @@ function StatItem({
   icon: Icon,
   label,
   value,
-  color,
+  tone,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
-  color: string;
+  tone: string;
 }) {
   return (
     <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
-      <div className="flex items-center gap-1 text-[var(--text-faint)] text-[10px] uppercase tracking-wide">
-        <Icon className={`w-3 h-3 ${color}`} />
+      <div className="flex items-center gap-1 text-[var(--text-faint)] text-[10px] font-mono uppercase tracking-wide">
+        <Icon className={`w-3 h-3 ${tone}`} />
         {label}
       </div>
-      <div className={`text-sm font-semibold font-mono ${color}`}>{value}</div>
+      <div className={`text-sm font-semibold font-mono tabular-nums ${tone}`}>{value}</div>
     </div>
   );
 }

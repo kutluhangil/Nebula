@@ -21,6 +21,7 @@ import {
   ChartFrame,
   TooltipShell,
 } from "@/lib/dataviz";
+import { useLocale } from "@/lib/i18n";
 
 interface Quake {
   properties: { mag: number; place: string };
@@ -65,6 +66,7 @@ function TooltipBox({
  * feed's 100-event cap.
  */
 export function DepthChart({ earthquakes }: { earthquakes: Quake[] }) {
+  const { t } = useLocale();
   const data = useMemo<Point[]>(
     () =>
       earthquakes
@@ -80,8 +82,8 @@ export function DepthChart({ earthquakes }: { earthquakes: Quake[] }) {
 
   return (
     <ChartFrame
-      eyebrow="Depth vs magnitude"
-      caption={`${data.length} events — deeper quakes sit to the right`}
+      eyebrow={t.earth.depthScatter}
+      caption={`${data.length} ${t.earth.depthCaption}`}
     >
       <div className="h-56 w-full">
         <ResponsiveContainer width="100%" height="100%">

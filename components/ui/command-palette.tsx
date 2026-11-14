@@ -22,9 +22,11 @@ import {
   Orbit,
   Users,
   Circle,
+  Languages,
   type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useLocale } from "@/lib/i18n";
 import { useSearchIndex } from "@/hooks/use-search-index";
 import type { SearchEntry, SearchGroup } from "@/lib/search-index";
 
@@ -85,6 +87,7 @@ export function CommandPalette({
 }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { t, toggleLocale } = useLocale();
   const [query, setQuery] = useState("");
 
   // The feeds are only pulled while the palette is open.
@@ -129,44 +132,51 @@ export function CommandPalette({
   const go = (href: string) => run(() => router.push(href));
 
   const navigation: Action[] = [
-    { id: "home", label: "Home", icon: Star, keywords: "landing start", perform: () => go("/") },
-    { id: "dashboard", label: "Dashboard", icon: Globe, keywords: "overview live feeds", perform: () => go("/dashboard") },
-    { id: "news", label: "Space news", icon: Newspaper, keywords: "articles reporting", perform: () => go("/news") },
-    { id: "space", label: "Space observatory", icon: Satellite, keywords: "apod nasa asteroid", perform: () => go("/space") },
-    { id: "sky", label: "Sky almanac", icon: Moon, keywords: "moon phase constellation planet mars quote fact rotation", perform: () => go("/sky") },
-    { id: "earth", label: "Earth intelligence", icon: Activity, keywords: "earthquakes usgs map quake", perform: () => go("/earth") },
-    { id: "launches", label: "Launches", icon: Rocket, keywords: "spacex rocket missions", perform: () => go("/launches") },
-    { id: "timeline", label: "Timeline", icon: Zap, keywords: "events history", perform: () => go("/timeline") },
-    { id: "favorites", label: "Favorites", icon: Star, keywords: "saved bookmarks starred", perform: () => go("/favorites") },
+    { id: "home", label: t.nav.home, icon: Star, keywords: "landing start ana sayfa", perform: () => go("/") },
+    { id: "dashboard", label: t.nav.dashboard, icon: Globe, keywords: "overview live feeds kontrol", perform: () => go("/dashboard") },
+    { id: "news", label: t.nav.news, icon: Newspaper, keywords: "articles reporting haber", perform: () => go("/news") },
+    { id: "space", label: t.nav.space, icon: Satellite, keywords: "apod nasa asteroid uzay", perform: () => go("/space") },
+    { id: "sky", label: t.nav.sky, icon: Moon, keywords: "moon phase constellation planet mars gokyuzu", perform: () => go("/sky") },
+    { id: "earth", label: t.nav.earth, icon: Activity, keywords: "earthquakes usgs map quake dunya deprem", perform: () => go("/earth") },
+    { id: "launches", label: t.nav.launches, icon: Rocket, keywords: "spacex rocket missions firlatma", perform: () => go("/launches") },
+    { id: "timeline", label: t.nav.timeline, icon: Zap, keywords: "events history zaman cizelgesi", perform: () => go("/timeline") },
+    { id: "favorites", label: t.nav.favorites, icon: Star, keywords: "saved bookmarks starred favori", perform: () => go("/favorites") },
   ];
 
   const actions: Action[] = [
     {
       id: "watchlist",
-      label: "Configure earthquake watchlist",
+      label: t.palette.actionWatchlist,
       icon: Bell,
-      keywords: "alerts notification threshold tsunami monitor",
+      keywords: "alerts notification threshold tsunami monitor bildirim",
       perform: () => go("/dashboard#watchlist"),
     },
     {
       id: "seismic-map",
-      label: "Open seismic map",
+      label: t.palette.actionMap,
       icon: MapIcon,
-      keywords: "earthquake earth usgs map monitor",
+      keywords: "earthquake earth usgs map monitor harita",
       perform: () => go("/earth"),
     },
     {
       id: "theme",
-      label: theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+      label: theme === "dark" ? t.palette.actionThemeLight : t.palette.actionThemeDark,
       icon: theme === "dark" ? Sun : Moon,
-      keywords: "dark light appearance mode toggle",
+      keywords: "dark light appearance mode toggle tema",
       perform: () => run(toggleTheme),
     },
     {
+      id: "language",
+      label: t.palette.actionLang,
+      icon: Languages,
+      keywords: "language english turkish tr en dil",
+      perform: () => run(toggleLocale),
+    },
+    {
       id: "top",
-      label: "Scroll to top",
+      label: t.palette.actionTop,
       icon: ArrowUp,
-      keywords: "up beginning",
+      keywords: "up beginning yukari",
       perform: () => run(() => window.scrollTo({ top: 0, behavior: "smooth" })),
     },
   ];
@@ -199,18 +209,15 @@ export function CommandPalette({
                   autoFocus
                   value={query}
                   onValueChange={setQuery}
-                  placeholder="Search pages, missions, astronauts, asteroids, quakes…"
+                  placeholder={t.palette.placeholder}
                 />
               </div>
 
-              {/* A feed that failed is named here. Without it a search over a
-                  dead feed returns nothing and reads as "no such record". */}
               {failures.length > 0 && (
                 <div className="border-b border-[var(--border)] px-4 py-2.5 text-[11px] leading-relaxed text-[var(--accent-amber)]">
                   {failures.map((failure) => (
                     <p key={failure.subject}>
-                      {failure.subject} are not searchable right now:{" "}
-                      {failure.message}
+                      {failure.subject} {t.palette.notSearchable} — {failure.message}
                     </p>
                   ))}
                 </div>
@@ -219,17 +226,17 @@ export function CommandPalette({
               <Command.List>
                 <Command.Empty>
                   {isLoading && entries.length === 0
-                    ? "Loading live records…"
-                    : "No matches. Try a page, an action, or a mission, planet, astronaut, asteroid or place name."}
+                    ? t.palette.emptyLoading
+                    : t.palette.emptyNone}
                 </Command.Empty>
 
-                <Command.Group heading="Go to">
+                <Command.Group heading={t.palette.goTo}>
                   {navigation.map((a) => (
                     <Item key={a.id} action={a} />
                   ))}
                 </Command.Group>
 
-                <Command.Group heading="Actions">
+                <Command.Group heading={t.palette.actions}>
                   {actions.map((a) => (
                     <Item key={a.id} action={a} />
                   ))}
@@ -270,9 +277,9 @@ export function CommandPalette({
               </Command.List>
 
               <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[var(--border)] font-mono text-[10px] text-[var(--text-faint)]">
-                <Legend keys="↑↓" label="Navigate" />
-                <Legend keys={<CornerDownLeft className="w-3 h-3" />} label="Select" />
-                <Legend keys="esc" label="Close" />
+                <Legend keys="↑↓" label={t.palette.navigate} />
+                <Legend keys={<CornerDownLeft className="w-3 h-3" />} label={t.palette.select} />
+                <Legend keys="esc" label={t.palette.close} />
               </div>
             </Command>
           </motion.div>
